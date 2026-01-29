@@ -1,0 +1,281 @@
+/**
+ * Controls styles for Circle-it application
+ * Contains button, slider, and control-specific styling
+ */
+
+/* Control Group */
+.control-group {
+    width: 100%;
+    margin-bottom: var(--spacing-lg);
+}
+
+.control-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text);
+    margin-bottom: var(--spacing-sm);
+}
+
+.control-icon {
+    width: 18px;
+    height: 18px;
+    color: var(--color-text-muted);
+}
+
+.control-value {
+    margin-left: auto;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.8125rem;
+    color: var(--color-primary);
+    background: var(--color-primary-light);
+    padding: 0.125rem 0.5rem;
+    border-radius: var(--radius-sm);
+}
+
+/* Zoom Slider */
+.zoom-slider {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--color-border);
+    border-radius: var(--radius-full);
+    outline: none;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.zoom-slider:hover {
+    background: var(--color-border-hover);
+}
+
+.zoom-slider:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 4px;
+}
+
+.zoom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--color-primary);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-fast);
+    border: 3px solid white;
+}
+
+.zoom-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    background: var(--color-primary-hover);
+}
+
+.zoom-slider::-webkit-slider-thumb:active {
+    transform: scale(0.95);
+}
+
+.zoom-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: var(--color-primary);
+    border: 3px solid white;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-fast);
+}
+
+.zoom-slider::-moz-range-thumb:hover {
+    transform: scale(1.1);
+    background: var(--color-primary-hover);
+}
+
+.zoom-slider::-moz-range-track {
+    background: var(--color-border);
+    border-radius: var(--radius-full);
+    height: 6px;
+}
+
+/* Button Group */
+.button-group {
+    display: flex;
+    gap: var(--spacing-sm);
+    width: 100%;
+}
+
+/* Base Button Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-family: inherit;
+    line-height: 1.5;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    user-select: none;
+    text-decoration: none;
+    white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.btn:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* Primary Button */
+.btn-primary {
+    background-color: var(--color-primary);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Secondary Button */
+.btn-secondary {
+    flex: 1;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background-color: var(--color-border);
+    border-color: var(--color-border-hover);
+}
+
+.btn-secondary:active:not(:disabled) {
+    background-color: var(--color-border-hover);
+}
+
+/* Download Button */
+.btn-download {
+    width: 100%;
+    margin-top: var(--spacing-lg);
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+}
+
+.btn-download:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+/* Loading State */
+.btn.loading {
+    color: transparent;
+    pointer-events: none;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: var(--radius-full);
+    animation: spin 0.6s linear infinite;
+}
+
+.btn-primary.loading::after {
+    border-color: white;
+    border-right-color: transparent;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Ripple effect on buttons */
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-full);
+    transform: translate(-50%, -50%);
+    transition: width 0.4s ease, height 0.4s ease;
+}
+
+.btn:active::before {
+    width: 200px;
+    height: 200px;
+}
+
+/* Mobile Touch Friendly */
+@media (pointer: coarse) {
+    .zoom-slider {
+        height: 8px;
+    }
+
+    .zoom-slider::-webkit-slider-thumb {
+        width: 28px;
+        height: 28px;
+        border-width: 4px;
+    }
+
+    .zoom-slider::-moz-range-thumb {
+        width: 28px;
+        height: 28px;
+        border-width: 4px;
+    }
+
+    .btn {
+        padding: 0.875rem 1.25rem;
+        min-height: 48px;
+    }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 480px) {
+    .button-group {
+        flex-direction: column;
+    }
+
+    .btn-secondary {
+        flex: none;
+        width: 100%;
+    }
+}
