@@ -287,6 +287,14 @@ body {
     overflow: hidden;
 }
 
+.canvas-wrapper[data-shape="square"] {
+    border-radius: 0;
+}
+
+.canvas-wrapper[data-shape="rounded"] {
+    /* border-radius set dynamically via JS */
+}
+
 #canvas {
     display: block;
     width: 100%;
@@ -306,7 +314,7 @@ body {
     align-items: center;
     justify-content: center;
     background: rgba(0, 0, 0, 0.4);
-    border-radius: var(--radius-full);
+    border-radius: inherit;
     opacity: 0;
     transition: opacity var(--transition-normal);
     pointer-events: none;
@@ -365,11 +373,27 @@ body {
     overflow: hidden;
 }
 
+.preview-wrapper[data-shape="square"] {
+    border-radius: 0;
+}
+
+.preview-wrapper[data-shape="rounded"] {
+    /* border-radius set dynamically via JS */
+}
+
 #previewCanvas {
     display: block;
     width: var(--preview-size);
     height: var(--preview-size);
     border-radius: var(--radius-full);
+}
+
+#previewCanvas[data-shape="square"] {
+    border-radius: 0;
+}
+
+#previewCanvas[data-shape="rounded"] {
+    /* border-radius set dynamically via JS */
 }
 
 .preview-info {

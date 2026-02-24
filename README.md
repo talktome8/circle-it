@@ -74,6 +74,7 @@ No build tools, no dependencies, no installation required!
 ```
 circle-it/
 ├── index.html              # Main HTML file
+├── vercel.json             # Vercel static hosting configuration
 ├── README.md               # This file
 └── src/
     ├── css/
@@ -84,9 +85,10 @@ circle-it/
         ├── state.js        # Centralized state management
         ├── imageLoader.js  # File input & drag-drop handling
         ├── canvasRenderer.js # Canvas drawing operations
-        ├── interactions.js # Drag, touch & zoom interactions
+        ├── interactions.js # Drag, touch, pinch-zoom & zoom interactions
         ├── downloader.js   # Image export & download
-        └── clipboardHandler.js # Clipboard paste support
+        ├── clipboardHandler.js # Clipboard paste support
+        └── backgroundRemover.js # AI background removal (on-demand)
 ```
 
 ## 🛠️ Technical Details
@@ -123,19 +125,30 @@ circle-it/
 - Fast edge caching
 - Easy Git integration
 
-### Vercel
+### Vercel (Production — circle-it.raztom.com)
 
-1. Import your GitHub repository
-2. Framework preset: **Other**
-3. Build settings: (leave defaults)
-4. Deploy
+1. Import your GitHub repository on [vercel.com](https://vercel.com)
+2. Settings:
+   - **Framework preset:** Other
+   - **Build command:** *(leave empty)*
+   - **Output directory:** `/`
+3. Click **Deploy**
+4. Add the custom domain `circle-it.raztom.com` in the Vercel project → **Settings → Domains**
+5. Vercel will display the required DNS record (typically a CNAME)
 
-## 🌐 Custom Domain Setup (Cloudflare)
+> A `vercel.json` is included in the repo for clean URLs, no trailing slash, and development-friendly cache headers.
 
-1. Add a CNAME record in Cloudflare DNS:
-   - Name: `circle-it` (or your subdomain)
-   - Target: Your Cloudflare Pages URL
-2. Cloudflare will auto-configure SSL
+## 🌐 Custom Domain Setup (Cloudflare → circle-it.raztom.com)
+
+1. In **Vercel** → Project Settings → Domains, add `circle-it.raztom.com`
+2. Vercel will instruct you to create a DNS record (usually `CNAME circle-it → cname.vercel-dns.com`)
+3. In **Cloudflare DNS** for `raztom.com`:
+   - **Type:** CNAME
+   - **Name:** `circle-it`
+   - **Target:** `cname.vercel-dns.com` (or the target Vercel provides)
+   - **Proxy status:** DNS only (gray cloud) — required so Vercel can issue its own TLS certificate
+4. Wait for DNS propagation (usually under 5 minutes with Cloudflare)
+5. Verify HTTPS works at `https://circle-it.raztom.com`
 
 ## 💡 Tips for Best Results
 

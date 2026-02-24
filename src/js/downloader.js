@@ -17,12 +17,14 @@ var Downloader = (function() {
     var PREVIEW_SIZE = 400;
 
     /**
-     * Generate a filename with timestamp
+     * Generate a filename with timestamp and shape
+     * @param {string} cropStyle - The crop style (circle, square, rounded)
      * @returns {string} Generated filename
      */
-    function generateFilename() {
+    function generateFilename(cropStyle) {
         var timestamp = Date.now();
-        return 'circle-it-' + timestamp + '.png';
+        var shape = cropStyle || 'circle';
+        return shape + '-it-' + timestamp + '.png';
     }
 
     /**
@@ -60,17 +62,27 @@ var Downloader = (function() {
             exportCanvas.width = EXPORT_SIZE;
             exportCanvas.height = EXPORT_SIZE;
             
-            var ctx = exportCanvas.getContext('2d');
+            // Explicitly enable alpha channel for transparency
+            var ctx = exportCanvas.getContext('2d', { alpha: true });
 
-            // Scale factor for position adjustment
+            // Reset any transforms and ensure fully transparent start
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, EXPORT_SIZE, EXPORT_SIZE);
+
+            // Scale factor for position adjustment (export is 512, preview canvas is 400)
             var scaleFactor = EXPORT_SIZE / PREVIEW_SIZE;
 
             // Render for export with scale factor
             renderForExport(ctx, EXPORT_SIZE, state, scaleFactor);
 
-            // Convert to PNG and download
+            // DEV-MODE: verify transparency outside the shape
+            if (typeof CanvasRenderer !== 'undefined' && CanvasRenderer.verifyTransparency) {
+                CanvasRenderer.verifyTransparency(ctx, EXPORT_SIZE, state.cropStyle);
+            }
+
+            // Convert to PNG (preserves alpha channel) and download
             var dataUrl = exportCanvas.toDataURL('image/png');
-            var filename = generateFilename();
+            var filename = generateFilename(state.cropStyle);
             
             triggerDownload(dataUrl, filename);
 

@@ -17,6 +17,12 @@ var ImageLoader = (function() {
     var MAX_FILE_SIZE = 20 * 1024 * 1024;
 
     /**
+     * Maximum dimension (width or height) before we downscale.
+     * Very large images can cause canvas OOM or sluggish rendering.
+     */
+    var MAX_DIMENSION = 4096;
+
+    /**
      * Callback function when image is loaded
      */
     var onImageLoaded = null;
@@ -46,6 +52,47 @@ var ImageLoader = (function() {
     }
 
     /**
+     * Downscale an image if it exceeds MAX_DIMENSION on either axis.
+     * Returns a new Image element (or the original if no downscale needed).
+     * @param {HTMLImageElement} image - Original image
+     * @param {Function} callback - Receives the (possibly downscaled) Image
+     */
+    function downscaleIfNeeded(image, callback) {
+        var w = image.naturalWidth || image.width;
+        var h = image.naturalHeight || image.height;
+
+        if (w <= MAX_DIMENSION && h <= MAX_DIMENSION) {
+            callback(image);
+            return;
+        }
+
+        // Calculate scaled dimensions keeping aspect ratio
+        var ratio = Math.min(MAX_DIMENSION / w, MAX_DIMENSION / h);
+        var newW = Math.round(w * ratio);
+        var newH = Math.round(h * ratio);
+
+        console.log('[circle-it] Downscaling image from ' + w + 'x' + h + ' to ' + newW + 'x' + newH);
+
+        var canvas = document.createElement('canvas');
+        canvas.width = newW;
+        canvas.height = newH;
+        var ctx = canvas.getContext('2d', { alpha: true });
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(image, 0, 0, newW, newH);
+
+        var scaled = new Image();
+        scaled.onload = function() {
+            callback(scaled);
+        };
+        scaled.onerror = function() {
+            // Fallback to original if conversion fails
+            callback(image);
+        };
+        scaled.src = canvas.toDataURL('image/png');
+    }
+
+    /**
      * Load an image from a File object
      * @param {File} file - The image file to load
      */
@@ -70,9 +117,11 @@ var ImageLoader = (function() {
             var image = new Image();
 
             image.onload = function() {
-                if (onImageLoaded) {
-                    onImageLoaded(image, getBaseName(file.name));
-                }
+                downscaleIfNeeded(image, function(finalImage) {
+                    if (onImageLoaded) {
+                        onImageLoaded(finalImage, getBaseName(file.name));
+                    }
+                });
             };
 
             image.onerror = function() {
@@ -99,15 +148,24 @@ var ImageLoader = (function() {
      * @param {string} name - Optional name
      */
     function loadImageFromBlob(blob, name) {
+        if (!blob || blob.type.indexOf('image') === -1) {
+            if (onError) {
+                onError('Clipboard does not contain an image.');
+            }
+            return;
+        }
+
         var reader = new FileReader();
 
         reader.onload = function(event) {
             var image = new Image();
 
             image.onload = function() {
-                if (onImageLoaded) {
-                    onImageLoaded(image, name || 'pasted-image');
-                }
+                downscaleIfNeeded(image, function(finalImage) {
+                    if (onImageLoaded) {
+                        onImageLoaded(finalImage, name || 'pasted-image');
+                    }
+                });
             };
 
             image.onerror = function() {

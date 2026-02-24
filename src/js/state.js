@@ -17,10 +17,18 @@ var AppState = (function() {
      */
     var state = {
         image: null,
+        processedImage: null,  // Image with background removed
         imageName: '',
         position: { x: DEFAULT_POSITION.x, y: DEFAULT_POSITION.y },
         scale: DEFAULT_SCALE,
-        isLoading: false
+        isLoading: false,
+        removeBackground: false,
+        isProcessingBackground: false,
+        backgroundColor: 'transparent',  // Background color when removeBackground is enabled
+        backgroundImage: null,  // Background image (AI generated or uploaded)
+        isGeneratingBackground: false,  // Whether AI is generating background
+        cropStyle: 'circle',  // 'circle', 'square', 'rounded'
+        borderRadius: 20  // Border radius percentage for rounded style (0-50)
     };
 
     /**
@@ -49,10 +57,18 @@ var AppState = (function() {
     function getState() {
         return {
             image: state.image,
+            processedImage: state.processedImage,
             imageName: state.imageName,
             position: { x: state.position.x, y: state.position.y },
             scale: state.scale,
-            isLoading: state.isLoading
+            isLoading: state.isLoading,
+            removeBackground: state.removeBackground,
+            isProcessingBackground: state.isProcessingBackground,
+            backgroundColor: state.backgroundColor,
+            backgroundImage: state.backgroundImage,
+            isGeneratingBackground: state.isGeneratingBackground,
+            cropStyle: state.cropStyle,
+            borderRadius: state.borderRadius
         };
     }
 
@@ -121,10 +137,94 @@ var AppState = (function() {
      */
     function clear() {
         state.image = null;
+        state.processedImage = null;
         state.imageName = '';
         state.position = { x: DEFAULT_POSITION.x, y: DEFAULT_POSITION.y };
         state.scale = DEFAULT_SCALE;
         state.isLoading = false;
+        state.removeBackground = false;
+        state.isProcessingBackground = false;
+        state.backgroundColor = 'transparent';
+        state.backgroundImage = null;
+        state.isGeneratingBackground = false;
+        state.cropStyle = 'circle';
+        state.borderRadius = 20;
+        notifySubscribers();
+    }
+
+    /**
+     * Set remove background option
+     * @param {boolean} enabled
+     */
+    function setRemoveBackground(enabled) {
+        state.removeBackground = enabled;
+        notifySubscribers();
+    }
+
+    /**
+     * Set the processed image (with background removed)
+     * @param {HTMLImageElement} image - The processed image
+     */
+    function setProcessedImage(image) {
+        state.processedImage = image;
+        notifySubscribers();
+    }
+
+    /**
+     * Set background processing state
+     * @param {boolean} processing
+     */
+    function setProcessingBackground(processing) {
+        state.isProcessingBackground = processing;
+        notifySubscribers();
+    }
+
+    /**
+     * Set background color
+     * @param {string} color - CSS color value or 'transparent'
+     */
+    function setBackgroundColor(color) {
+        state.backgroundColor = color;
+        state.backgroundImage = null;  // Clear background image when setting color
+        notifySubscribers();
+    }
+
+    /**
+     * Set background image
+     * @param {HTMLImageElement} image - Background image
+     */
+    function setBackgroundImage(image) {
+        state.backgroundImage = image;
+        state.backgroundColor = 'transparent';  // Clear color when setting image
+        notifySubscribers();
+    }
+
+    /**
+     * Set background generation state
+     * @param {boolean} generating
+     */
+    function setGeneratingBackground(generating) {
+        state.isGeneratingBackground = generating;
+        notifySubscribers();
+    }
+
+    /**
+     * Set crop style
+     * @param {string} style - 'circle', 'square', or 'rounded'
+     */
+    function setCropStyle(style) {
+        if (['circle', 'square', 'rounded'].indexOf(style) !== -1) {
+            state.cropStyle = style;
+            notifySubscribers();
+        }
+    }
+
+    /**
+     * Set border radius for rounded style
+     * @param {number} radius - Border radius percentage (0-50)
+     */
+    function setBorderRadius(radius) {
+        state.borderRadius = Math.max(0, Math.min(50, Math.round(radius)));
         notifySubscribers();
     }
 
@@ -162,6 +262,14 @@ var AppState = (function() {
         reset: reset,
         clear: clear,
         subscribe: subscribe,
-        getDefaultScale: getDefaultScale
+        getDefaultScale: getDefaultScale,
+        setRemoveBackground: setRemoveBackground,
+        setProcessedImage: setProcessedImage,
+        setProcessingBackground: setProcessingBackground,
+        setBackgroundColor: setBackgroundColor,
+        setBackgroundImage: setBackgroundImage,
+        setGeneratingBackground: setGeneratingBackground,
+        setCropStyle: setCropStyle,
+        setBorderRadius: setBorderRadius
     };
 })();

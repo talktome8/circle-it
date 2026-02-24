@@ -18,6 +18,15 @@ var Interactions = (function() {
     };
 
     /**
+     * Pinch-zoom state tracking
+     */
+    var pinchState = {
+        isPinching: false,
+        initialDistance: 0,
+        initialScale: 100
+    };
+
+    /**
      * References to callbacks and state functions
      */
     var getState = null;
@@ -92,36 +101,76 @@ var Interactions = (function() {
     }
 
     /**
-     * Handle touch start on canvas
-     * @param {TouchEvent} event - Touch event
+     * Get distance between two touch points
+     * @param {Touch} t1 - First touch
+     * @param {Touch} t2 - Second touch
+     * @returns {number} Distance in pixels
      */
-    function handleTouchStart(event) {
-        if (!getState().image || event.touches.length !== 1) {
-            return;
-        }
-
-        event.preventDefault();
-
-        var touch = event.touches[0];
-        var state = getState();
-        
-        dragState.isDragging = true;
-        dragState.startX = touch.clientX;
-        dragState.startY = touch.clientY;
-        dragState.startPositionX = state.position.x;
-        dragState.startPositionY = state.position.y;
+    function getTouchDistance(t1, t2) {
+        var dx = t1.clientX - t2.clientX;
+        var dy = t1.clientY - t2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
     }
 
     /**
-     * Handle touch move during drag
+     * Handle touch start on canvas
+     * Supports single-finger drag and two-finger pinch zoom
      * @param {TouchEvent} event - Touch event
      */
-    function handleTouchMove(event) {
-        if (!dragState.isDragging || event.touches.length !== 1) {
+    function handleTouchStart(event) {
+        if (!getState().image) {
             return;
         }
 
+        // Prevent page scroll / pull-to-refresh while interacting with the canvas
         event.preventDefault();
+
+        if (event.touches.length === 2) {
+            // Start pinch zoom
+            pinchState.isPinching = true;
+            pinchState.initialDistance = getTouchDistance(event.touches[0], event.touches[1]);
+            pinchState.initialScale = getState().scale;
+            dragState.isDragging = false;
+            return;
+        }
+
+        if (event.touches.length === 1) {
+            var touch = event.touches[0];
+            var state = getState();
+            
+            dragState.isDragging = true;
+            dragState.startX = touch.clientX;
+            dragState.startY = touch.clientY;
+            dragState.startPositionX = state.position.x;
+            dragState.startPositionY = state.position.y;
+        }
+    }
+
+    /**
+     * Handle touch move during drag or pinch zoom
+     * @param {TouchEvent} event - Touch event
+     */
+    function handleTouchMove(event) {
+        if (!getState().image) {
+            return;
+        }
+
+        // Prevent page scroll while interacting
+        event.preventDefault();
+
+        if (event.touches.length === 2 && pinchState.isPinching) {
+            // Pinch zoom
+            var currentDistance = getTouchDistance(event.touches[0], event.touches[1]);
+            var ratio = currentDistance / pinchState.initialDistance;
+            var newScale = Math.round(pinchState.initialScale * ratio);
+            setScale(newScale);
+            updateSliderValue(zoomSliderElement, zoomValueElement, newScale);
+            return;
+        }
+
+        if (!dragState.isDragging || event.touches.length !== 1) {
+            return;
+        }
 
         var touch = event.touches[0];
         var deltaX = touch.clientX - dragState.startX;
@@ -136,8 +185,13 @@ var Interactions = (function() {
     /**
      * Handle touch end
      */
-    function handleTouchEnd() {
-        dragState.isDragging = false;
+    function handleTouchEnd(event) {
+        if (event.touches.length < 2) {
+            pinchState.isPinching = false;
+        }
+        if (event.touches.length === 0) {
+            dragState.isDragging = false;
+        }
     }
 
     /**
