@@ -118,6 +118,43 @@ var CanvasRenderer = (function() {
             y: drawY
         };
     }
+
+    /**
+     * Clamp image position so the crop area is always fully covered.
+     * @param {HTMLImageElement} image - The rendered image
+     * @param {number} canvasSize - The source canvas size
+     * @param {number} scalePercent - The zoom scale percentage
+     * @param {Object} position - Current x/y offsets
+     * @returns {Object} Clamped x/y offsets
+     */
+    function constrainPosition(image, canvasSize, scalePercent, position) {
+        if (!image) {
+            return { x: 0, y: 0 };
+        }
+
+        var dims = calculateImageDimensions(image, canvasSize, scalePercent);
+        var x = position && typeof position.x === 'number' ? position.x : 0;
+        var y = position && typeof position.y === 'number' ? position.y : 0;
+
+        if (dims.width > canvasSize) {
+            var minX = canvasSize - dims.width - dims.x;
+            var maxX = -dims.x;
+            x = Math.max(minX, Math.min(maxX, x));
+        } else {
+            x = 0;
+        }
+
+        if (dims.height > canvasSize) {
+            var minY = canvasSize - dims.height - dims.y;
+            var maxY = -dims.y;
+            y = Math.max(minY, Math.min(maxY, y));
+        } else {
+            y = 0;
+        }
+
+        return { x: x, y: y };
+    }
+
     /**
      * Render the canvas with current state
      * Uses fully transparent canvas pixels — CSS checkerboard on the wrapper
@@ -168,11 +205,12 @@ var CanvasRenderer = (function() {
             createClipPath(ctx, size, cropStyle, borderRadius);
 
             var dims = calculateImageDimensions(imageToRender, size, state.scale);
+            var position = constrainPosition(imageToRender, size, state.scale, state.position);
 
             ctx.drawImage(
                 imageToRender,
-                dims.x + state.position.x,
-                dims.y + state.position.y,
+                dims.x + position.x,
+                dims.y + position.y,
                 dims.width,
                 dims.height
             );
@@ -288,11 +326,12 @@ var CanvasRenderer = (function() {
         createClipPath(ctx, size, cropStyle, borderRadius);
 
         var dims = calculateImageDimensions(imageToRender, size, state.scale);
+        var position = constrainPosition(imageToRender, size / scaleFactor, state.scale, state.position);
 
         ctx.drawImage(
             imageToRender,
-            dims.x + (state.position.x * scaleFactor),
-            dims.y + (state.position.y * scaleFactor),
+            dims.x + (position.x * scaleFactor),
+            dims.y + (position.y * scaleFactor),
             dims.width,
             dims.height
         );
@@ -358,11 +397,12 @@ var CanvasRenderer = (function() {
 
         // Draw image scaled to preview
         var dims = calculateImageDimensions(imageToRender, previewSize, state.scale);
+        var position = constrainPosition(imageToRender, canvasSize, state.scale, state.position);
 
         ctx.drawImage(
             imageToRender,
-            dims.x + (state.position.x * ratio),
-            dims.y + (state.position.y * ratio),
+            dims.x + (position.x * ratio),
+            dims.y + (position.y * ratio),
             dims.width,
             dims.height
         );
@@ -423,6 +463,7 @@ var CanvasRenderer = (function() {
         renderForExport: renderForExport,
         renderPreview: renderPreview,
         calculateImageDimensions: calculateImageDimensions,
+        constrainPosition: constrainPosition,
         verifyTransparency: verifyTransparency
     };
 })();

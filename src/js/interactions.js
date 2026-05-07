@@ -37,6 +37,41 @@ var Interactions = (function() {
     var zoomValueElement = null;
 
     /**
+     * Clamp and save the image position so no transparent gaps appear inside the crop.
+     * @param {number} x - Desired x offset
+     * @param {number} y - Desired y offset
+     */
+    function setConstrainedPosition(x, y) {
+        var state = getState();
+        var imageToRender = state.image;
+
+        if (state.removeBackground && state.processedImage) {
+            imageToRender = state.processedImage;
+        }
+
+        if (typeof CanvasRenderer !== 'undefined' && CanvasRenderer.constrainPosition) {
+            var constrained = CanvasRenderer.constrainPosition(
+                imageToRender,
+                canvasElement.width,
+                state.scale,
+                { x: x, y: y }
+            );
+            setPosition(constrained.x, constrained.y);
+            return;
+        }
+
+        setPosition(x, y);
+    }
+
+    /**
+     * Re-clamp the current position after zoom changes.
+     */
+    function constrainCurrentPosition() {
+        var state = getState();
+        setConstrainedPosition(state.position.x, state.position.y);
+    }
+
+    /**
      * Handle mouse down on canvas
      * @param {MouseEvent} event - Mouse event
      */
@@ -78,7 +113,7 @@ var Interactions = (function() {
         var newX = dragState.startPositionX + deltaX;
         var newY = dragState.startPositionY + deltaY;
 
-        setPosition(newX, newY);
+        setConstrainedPosition(newX, newY);
     }
 
     /**
@@ -164,7 +199,8 @@ var Interactions = (function() {
             var ratio = currentDistance / pinchState.initialDistance;
             var newScale = Math.round(pinchState.initialScale * ratio);
             setScale(newScale);
-            updateSliderValue(zoomSliderElement, zoomValueElement, newScale);
+            constrainCurrentPosition();
+            updateSliderValue(zoomSliderElement, zoomValueElement, getState().scale);
             return;
         }
 
@@ -179,7 +215,7 @@ var Interactions = (function() {
         var newX = dragState.startPositionX + deltaX;
         var newY = dragState.startPositionY + deltaY;
 
-        setPosition(newX, newY);
+        setConstrainedPosition(newX, newY);
     }
 
     /**
@@ -210,7 +246,8 @@ var Interactions = (function() {
         var newScale = state.scale + delta;
 
         setScale(newScale);
-        updateSliderValue(zoomSliderElement, zoomValueElement, newScale);
+        constrainCurrentPosition();
+        updateSliderValue(zoomSliderElement, zoomValueElement, getState().scale);
     }
 
     /**
@@ -221,7 +258,8 @@ var Interactions = (function() {
         var value = parseInt(event.target.value, 10);
         if (!isNaN(value)) {
             setScale(value);
-            updateZoomDisplay(zoomValueElement, value);
+            constrainCurrentPosition();
+            updateZoomDisplay(zoomValueElement, getState().scale);
         }
     }
 

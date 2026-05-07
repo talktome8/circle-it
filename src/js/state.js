@@ -10,7 +10,7 @@ var AppState = (function() {
      * Default state values
      */
     var DEFAULT_POSITION = { x: 0, y: 0 };
-    var DEFAULT_SCALE = 100; // Percentage (50-300)
+    var DEFAULT_SCALE = 100; // Percentage (100-300)
 
     /**
      * Internal state object
@@ -113,10 +113,10 @@ var AppState = (function() {
 
     /**
      * Update the zoom scale (percentage)
-     * @param {number} scale - Scale percentage (50 to 300)
+     * @param {number} scale - Scale percentage (100 to 300)
      */
     function setScale(scale) {
-        state.scale = Math.max(50, Math.min(300, Math.round(scale)));
+        state.scale = Math.max(100, Math.min(300, Math.round(scale)));
         notifySubscribers();
     }
 
