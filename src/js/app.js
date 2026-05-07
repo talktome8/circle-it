@@ -161,6 +161,7 @@
         // Update remove background toggle state
         if (elements.removeBgToggle) {
             elements.removeBgToggle.disabled = state.isProcessingBackground;
+            elements.removeBgToggle.checked = state.removeBackground;
         }
 
         // Show/hide background color options

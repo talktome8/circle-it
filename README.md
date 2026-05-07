@@ -2,7 +2,7 @@
 
 **Crop any image into a perfect circle with transparent background.**
 
-A simple, fast, and privacy-focused image editing tool that runs entirely in your browser. No uploads, no servers, no data collection.
+A simple, fast, and privacy-focused image editing tool that processes images locally in your browser. No uploads and no data collection.
 
 🌐 **Live Demo:** [circle-it.raztom.com](https://circle-it.raztom.com)
 
@@ -15,7 +15,7 @@ A simple, fast, and privacy-focused image editing tool that runs entirely in you
 - **Real-time Preview** — See your final result before downloading
 - **One-Click Download** — Export as PNG with transparent background
 - **Mobile Friendly** — Touch-optimized with responsive design
-- **Privacy First** — Everything happens in your browser, no data leaves your device
+- **Privacy First** — Image processing happens in your browser; optional background removal downloads model assets on demand
 
 ## 🚀 Getting Started
 
@@ -95,6 +95,7 @@ circle-it/
 
 - **Pure vanilla JavaScript** — No frameworks or external libraries
 - **No build tools required** — Just open the HTML file
+- **Optional CDN dependency** — Background removal loads `@imgly/background-removal` and model assets on demand
 - **Modular architecture** — Single responsibility modules
 - **State-driven rendering** — Only state changes trigger updates
 - **Responsive design** — Works on desktop and mobile
@@ -173,4 +174,4 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ---
 
-**Made with ❤️ for the creative community**
+**Made with care for the creative community**

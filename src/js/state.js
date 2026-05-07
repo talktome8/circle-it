@@ -87,10 +87,16 @@ var AppState = (function() {
      */
     function setImage(image, name) {
         state.image = image;
+        state.processedImage = null;
         state.imageName = name || 'image';
         state.position = { x: DEFAULT_POSITION.x, y: DEFAULT_POSITION.y };
         state.scale = DEFAULT_SCALE;
         state.isLoading = false;
+        state.removeBackground = false;
+        state.isProcessingBackground = false;
+        state.backgroundColor = 'transparent';
+        state.backgroundImage = null;
+        state.isGeneratingBackground = false;
         notifySubscribers();
     }
 

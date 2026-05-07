@@ -47,19 +47,29 @@ var BackgroundRemover = (function() {
             
             var handleLoad = function() {
                 window.removeEventListener('imglyLoaded', handleLoad);
+                script.removeEventListener('error', handleError);
                 console.log('Background removal library loaded successfully');
                 libraryLoaded = true;
                 libraryLoading = false;
                 resolve();
             };
+
+            var handleError = function() {
+                window.removeEventListener('imglyLoaded', handleLoad);
+                libraryLoading = false;
+                loadPromise = null;
+                reject(new Error('Failed to load background removal library'));
+            };
             
             window.addEventListener('imglyLoaded', handleLoad);
+            script.addEventListener('error', handleError);
             
             // Timeout fallback
             setTimeout(function() {
                 if (!libraryLoaded) {
                     window.removeEventListener('imglyLoaded', handleLoad);
                     libraryLoading = false;
+                    loadPromise = null;
                     reject(new Error('Library load timeout'));
                 }
             }, 30000);
