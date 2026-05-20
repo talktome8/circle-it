@@ -1,20 +1,20 @@
 # Circle-it
 
-**Crop any image into a perfect circle with transparent background.**
+**Create polished profile pictures and avatars in seconds.**
 
-A simple, fast, and privacy-focused image editing tool that processes images locally in your browser. No uploads and no data collection.
+A simple, fast, and privacy-focused profile-picture tool that processes images locally in your browser. No uploads and no data collection.
 
 🌐 **Live Demo:** [circle-it.raztom.com](https://circle-it.raztom.com)
 
 ## ✨ Features
 
-- **Drag & Drop Upload** — Simply drop any image onto the page
-- **Clipboard Paste** — Press `Ctrl+V` (or `⌘+V` on Mac) to paste screenshots
-- **Circle Cropping** — Perfect circular mask with transparent background
-- **Reposition & Zoom** — Drag to move, scroll to zoom, or use the slider
-- **Real-time Preview** — See your final result before downloading
-- **One-Click Download** — Export as PNG with transparent background
-- **Mobile Friendly** — Touch-optimized with responsive design
+- **Profile Presets** — LinkedIn, Instagram, Discord, WhatsApp, TikTok, YouTube, and gaming avatars
+- **Smart Positioning** — Uses browser face detection when available, with a fast fallback
+- **Background Options** — Transparent, solid, gradient, blur, and auto palette background styles
+- **Export Options** — PNG, JPG, quality levels, and HD export
+- **Before / After Preview** — Compare the source image with the final avatar
+- **Drag & Drop Upload** — Drop, browse, or paste images from clipboard
+- **Mobile Friendly** — Large touch targets, pinch zoom, and smooth drag controls
 - **Privacy First** — Image processing happens in your browser; optional background removal downloads model assets on demand
 
 ## 🚀 Getting Started
@@ -67,7 +67,7 @@ No build tools, no dependencies, no installation required!
 ## 🎨 Supported Formats
 
 **Input:** JPEG, PNG, WebP  
-**Output:** PNG with transparent background (512×512 pixels)
+**Output:** PNG or JPG, optimized per selected profile preset
 
 ## 🏗️ Project Structure
 

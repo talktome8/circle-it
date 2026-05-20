@@ -1,55 +1,49 @@
 /**
  * Downloader Module
- * Handles exporting and downloading the circular image
+ * Handles optimized avatar export.
  */
 
 var Downloader = (function() {
     'use strict';
 
-    /**
-     * Output canvas size for download
-     */
-    var EXPORT_SIZE = 512;
-
-    /**
-     * Preview canvas size
-     */
     var PREVIEW_SIZE = 400;
+    var PRESET_SIZES = {
+        linkedin: 1024,
+        instagram: 1080,
+        discord: 512,
+        whatsapp: 640,
+        tiktok: 1080,
+        youtube: 800,
+        gaming: 1024
+    };
 
-    /**
-     * Generate a filename with timestamp and shape
-     * @param {string} cropStyle - The crop style (circle, square, rounded)
-     * @returns {string} Generated filename
-     */
-    function generateFilename(cropStyle) {
-        var timestamp = Date.now();
-        var shape = cropStyle || 'circle';
-        return shape + '-it-' + timestamp + '.png';
+    function getExportSize(state) {
+        var baseSize = PRESET_SIZES[state.preset] || 1024;
+        return state.hdExport ? Math.min(baseSize * 2, 2048) : baseSize;
     }
 
-    /**
-     * Create and trigger a download
-     * @param {string} dataUrl - Data URL of the image
-     * @param {string} filename - Name of the file to download
-     */
+    function getEncoderQuality(quality) {
+        if (quality === 'standard') return 0.82;
+        if (quality === 'max') return 0.98;
+        return 0.92;
+    }
+
+    function generateFilename(state) {
+        var timestamp = Date.now();
+        var preset = state.preset || 'avatar';
+        var format = state.exportFormat === 'jpg' ? 'jpg' : 'png';
+        return 'circle-it-' + preset + '-' + timestamp + '.' + format;
+    }
+
     function triggerDownload(dataUrl, filename) {
         var link = document.createElement('a');
         link.download = filename;
         link.href = dataUrl;
-        
-        // Append to body, click, and remove
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     }
 
-    /**
-     * Download the circular image
-     * @param {Object} state - Current application state
-     * @param {Function} renderForExport - Render function from CanvasRenderer
-     * @param {Function} onSuccess - Success callback
-     * @param {Function} onError - Error callback
-     */
     function downloadImage(state, renderForExport, onSuccess, onError) {
         if (!state.image) {
             if (onError) onError('No image to download');
@@ -57,86 +51,65 @@ var Downloader = (function() {
         }
 
         try {
-            // Create an offscreen canvas for export
+            var exportSize = getExportSize(state);
             var exportCanvas = document.createElement('canvas');
-            exportCanvas.width = EXPORT_SIZE;
-            exportCanvas.height = EXPORT_SIZE;
-            
-            // Explicitly enable alpha channel for transparency
-            var ctx = exportCanvas.getContext('2d', { alpha: true });
+            exportCanvas.width = exportSize;
+            exportCanvas.height = exportSize;
 
-            // Reset any transforms and ensure fully transparent start
+            var ctx = exportCanvas.getContext('2d', { alpha: state.exportFormat !== 'jpg' });
             ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, EXPORT_SIZE, EXPORT_SIZE);
+            ctx.clearRect(0, 0, exportSize, exportSize);
 
-            // Scale factor for position adjustment (export is 512, preview canvas is 400)
-            var scaleFactor = EXPORT_SIZE / PREVIEW_SIZE;
+            renderForExport(ctx, exportSize, state, exportSize / PREVIEW_SIZE);
 
-            // Render for export with scale factor
-            renderForExport(ctx, EXPORT_SIZE, state, scaleFactor);
-
-            // DEV-MODE: verify transparency outside the shape
-            if (typeof CanvasRenderer !== 'undefined' && CanvasRenderer.verifyTransparency) {
-                CanvasRenderer.verifyTransparency(ctx, EXPORT_SIZE, state.cropStyle);
+            if (state.exportFormat !== 'jpg' && typeof CanvasRenderer !== 'undefined' && CanvasRenderer.verifyTransparency) {
+                CanvasRenderer.verifyTransparency(ctx, exportSize, state.cropStyle);
             }
 
-            // Convert to PNG (preserves alpha channel) and download
-            var dataUrl = exportCanvas.toDataURL('image/png');
-            var filename = generateFilename(state.cropStyle);
-            
-            triggerDownload(dataUrl, filename);
+            var mimeType = state.exportFormat === 'jpg' ? 'image/jpeg' : 'image/png';
+            var dataUrl = exportCanvas.toDataURL(mimeType, getEncoderQuality(state.exportQuality));
+            triggerDownload(dataUrl, generateFilename(state));
 
-            if (onSuccess) onSuccess();
+            if (onSuccess) onSuccess(exportSize);
         } catch (e) {
             console.error('Download error:', e);
             if (onError) onError('Failed to generate download');
         }
     }
 
-    /**
-     * Initialize the downloader
-     * @param {HTMLButtonElement} downloadBtn - Download button element
-     * @param {Function} getState - Function to get current state
-     * @param {Function} renderForExport - Render function from CanvasRenderer
-     * @param {Function} onSuccess - Success callback
-     * @param {Function} onError - Error callback
-     */
     function init(downloadBtn, getState, renderForExport, onSuccess, onError) {
         downloadBtn.addEventListener('click', function() {
             var state = getState();
-            
-            // Add loading state
             downloadBtn.classList.add('loading');
             downloadBtn.disabled = true;
 
-            // Small delay to show loading state
             setTimeout(function() {
-                downloadImage(state, renderForExport, function() {
+                downloadImage(state, renderForExport, function(size) {
                     downloadBtn.classList.remove('loading');
                     downloadBtn.disabled = false;
-                    if (onSuccess) onSuccess();
+                    if (onSuccess) onSuccess(size);
                 }, function(err) {
                     downloadBtn.classList.remove('loading');
                     downloadBtn.disabled = false;
                     if (onError) onError(err);
                 });
-            }, 100);
+            }, 80);
         });
     }
 
-    /**
-     * Update download button enabled state
-     * @param {HTMLButtonElement} downloadBtn - Download button element
-     * @param {boolean} hasImage - Whether an image is loaded
-     */
     function updateButtonState(downloadBtn, hasImage) {
         downloadBtn.disabled = !hasImage;
     }
 
-    // Public API
+    function getPresetSize(preset, hdExport) {
+        var size = PRESET_SIZES[preset] || 1024;
+        return hdExport ? Math.min(size * 2, 2048) : size;
+    }
+
     return {
         init: init,
         updateButtonState: updateButtonState,
-        downloadImage: downloadImage
+        downloadImage: downloadImage,
+        getPresetSize: getPresetSize
     };
 })();

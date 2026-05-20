@@ -1,49 +1,27 @@
 /**
  * App Module
- * Main application bootstrap and coordination
+ * Main application bootstrap and coordination.
  */
 
 (function() {
     'use strict';
 
-    /**
-     * DOM Element references
-     */
-    var elements = {
-        uploadSection: null,
-        editorSection: null,
-        dropzone: null,
-        fileInput: null,
-        canvas: null,
-        canvasCtx: null,
-        previewCanvas: null,
-        previewCtx: null,
-        zoomSlider: null,
-        zoomValue: null,
-        resetBtn: null,
-        newImageBtn: null,
-        downloadBtn: null,
-        toast: null,
-        removeBgToggle: null,
-        removeBgHint: null,
-        bgColorOptions: null,
-        colorSwatches: null,
-        customColorPicker: null,
-        cropStyleRadios: null,
-        borderRadiusControl: null,
-        borderRadiusSlider: null,
-        radiusValue: null
-    };
-
-    /**
-     * Canvas configuration
-     */
     var CANVAS_SIZE = 400;
     var PREVIEW_SIZE = 120;
 
-    /**
-     * Initialize DOM element references
-     */
+    var PRESETS = {
+        linkedin: { label: 'LinkedIn', size: 1024, shape: 'circle', scale: 116, faceRatio: 0.48, targetY: 0.47 },
+        instagram: { label: 'Instagram', size: 1080, shape: 'circle', scale: 112, faceRatio: 0.52, targetY: 0.48 },
+        discord: { label: 'Discord', size: 512, shape: 'circle', scale: 118, faceRatio: 0.5, targetY: 0.47 },
+        whatsapp: { label: 'WhatsApp', size: 640, shape: 'circle', scale: 114, faceRatio: 0.5, targetY: 0.48 },
+        tiktok: { label: 'TikTok', size: 1080, shape: 'circle', scale: 120, faceRatio: 0.46, targetY: 0.46 },
+        youtube: { label: 'YouTube', size: 800, shape: 'circle', scale: 112, faceRatio: 0.5, targetY: 0.48 },
+        gaming: { label: 'Gaming', size: 1024, shape: 'rounded', scale: 122, faceRatio: 0.44, targetY: 0.46 }
+    };
+
+    var elements = {};
+    var lastDetectedFace = null;
+
     function initElements() {
         elements.uploadSection = document.getElementById('uploadSection');
         elements.editorSection = document.getElementById('editorSection');
@@ -51,13 +29,14 @@
         elements.fileInput = document.getElementById('fileInput');
         elements.canvas = document.getElementById('canvas');
         elements.canvasCtx = elements.canvas.getContext('2d', { alpha: true });
+        elements.beforeCanvas = document.getElementById('beforeCanvas');
+        elements.beforeCtx = elements.beforeCanvas.getContext('2d', { alpha: true });
         elements.previewCanvas = document.getElementById('previewCanvas');
         elements.previewCtx = elements.previewCanvas.getContext('2d', { alpha: true });
         elements.zoomSlider = document.getElementById('zoomSlider');
         elements.zoomValue = document.getElementById('zoomValue');
         elements.resetBtn = document.getElementById('resetBtn');
-        // Support both legacy 'newImageBtn' and current 'homeBtn'
-        elements.newImageBtn = document.getElementById('newImageBtn') || document.getElementById('homeBtn');
+        elements.newImageBtn = document.getElementById('homeBtn');
         elements.downloadBtn = document.getElementById('downloadBtn');
         elements.toast = document.getElementById('toast');
         elements.removeBgToggle = document.getElementById('removeBgToggle');
@@ -71,435 +50,368 @@
         elements.radiusValue = document.getElementById('radiusValue');
         elements.canvasWrapper = document.querySelector('.canvas-wrapper');
         elements.previewWrapper = document.querySelector('.preview-wrapper');
+        elements.beforeWrapper = document.querySelector('.before-wrapper');
+        elements.presetButtons = document.querySelectorAll('.preset-option');
+        elements.presetSize = document.getElementById('presetSize');
+        elements.backgroundStyleButtons = document.querySelectorAll('.segment-option[data-bg-style]');
+        elements.formatSelect = document.getElementById('formatSelect');
+        elements.qualitySelect = document.getElementById('qualitySelect');
+        elements.hdExportToggle = document.getElementById('hdExportToggle');
+        elements.exportSummary = document.getElementById('exportSummary');
+        elements.previewInfo = document.getElementById('previewInfo');
     }
 
-    /**
-     * Show toast notification
-     * @param {string} message - Message to display
-     * @param {string} type - 'success' | 'error' | 'info'
-     */
     function showToast(message, type) {
         var toast = elements.toast;
-        type = type || 'info';
-
-        // Clear existing classes
         toast.classList.remove('show', 'success', 'error');
-
-        // Set content and type
         toast.textContent = message;
         if (type === 'success') toast.classList.add('success');
         if (type === 'error') toast.classList.add('error');
-
-        // Force reflow to restart animation
         void toast.offsetWidth;
-
-        // Show toast
         toast.classList.add('show');
-
-        // Hide after delay
         setTimeout(function() {
             toast.classList.remove('show');
-        }, 3000);
+        }, 2600);
     }
 
-    /**
-     * Show the upload section, hide editor
-     */
     function showUploadView() {
         elements.uploadSection.hidden = false;
         elements.editorSection.hidden = true;
     }
 
-    /**
-     * Show the editor section, hide upload
-     */
     function showEditorView() {
         elements.uploadSection.hidden = true;
         elements.editorSection.hidden = false;
     }
 
-    /**
-     * Handle successful image load
-     * @param {HTMLImageElement} image - Loaded image element
-     * @param {string} name - Image name
-     */
-    function onImageLoaded(image, name) {
-        AppState.setImage(image, name);
-        showEditorView();
-        showToast('Image loaded successfully!', 'success');
+    function getPreset(key) {
+        return PRESETS[key] || PRESETS.linkedin;
     }
 
-    /**
-     * Handle image load error
-     * @param {string} message - Error message
-     */
+    function renderBeforePreview(image) {
+        var ctx = elements.beforeCtx;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, PREVIEW_SIZE, PREVIEW_SIZE);
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(0, 0, PREVIEW_SIZE, PREVIEW_SIZE);
+
+        if (!image) return;
+
+        var dims = CanvasRenderer.calculateContainDimensions(image, PREVIEW_SIZE);
+        ctx.drawImage(image, dims.x, dims.y, dims.width, dims.height);
+    }
+
+    function sampleImageColor(image) {
+        try {
+            var canvas = document.createElement('canvas');
+            var size = 24;
+            canvas.width = size;
+            canvas.height = size;
+            var ctx = canvas.getContext('2d', { alpha: false });
+            ctx.drawImage(image, 0, 0, size, size);
+            var data = ctx.getImageData(0, 0, size, size).data;
+            var r = 0;
+            var g = 0;
+            var b = 0;
+            var count = 0;
+
+            for (var i = 0; i < data.length; i += 16) {
+                r += data[i];
+                g += data[i + 1];
+                b += data[i + 2];
+                count++;
+            }
+
+            r = Math.round(r / count);
+            g = Math.round(g / count);
+            b = Math.round(b / count);
+            return '#' + [r, g, b].map(function(value) {
+                return value.toString(16).padStart(2, '0');
+            }).join('');
+        } catch (e) {
+            return '#eef2ff';
+        }
+    }
+
+    function applySmartPosition(faceBox) {
+        var state = AppState.getState();
+        var image = state.image;
+        if (!image) return;
+
+        var preset = getPreset(state.preset);
+        var scale = preset.scale;
+        var position = { x: 0, y: 0 };
+
+        if (faceBox) {
+            var desiredFaceHeight = CANVAS_SIZE * preset.faceRatio;
+            var baseDims = CanvasRenderer.calculateImageDimensions(image, CANVAS_SIZE, 100);
+            scale = Math.max(100, Math.min(300, Math.round((desiredFaceHeight / faceBox.height) * 100)));
+            var dims = CanvasRenderer.calculateImageDimensions(image, CANVAS_SIZE, scale);
+            var sourceScale = dims.width / image.width;
+            var faceCenterX = (faceBox.x + faceBox.width / 2) * sourceScale;
+            var faceCenterY = (faceBox.y + faceBox.height / 2) * sourceScale;
+            position.x = CANVAS_SIZE / 2 - dims.x - faceCenterX;
+            position.y = (CANVAS_SIZE * preset.targetY) - dims.y - faceCenterY;
+        }
+
+        AppState.setScale(scale);
+        var constrained = CanvasRenderer.constrainPosition(image, CANVAS_SIZE, scale, position);
+        AppState.setPosition(constrained.x, constrained.y);
+    }
+
+    function detectFace(image) {
+        if (!('FaceDetector' in window)) {
+            applySmartPosition(null);
+            return;
+        }
+
+        try {
+            var detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+            detector.detect(image)
+                .then(function(faces) {
+                    if (faces && faces.length > 0 && faces[0].boundingBox) {
+                        lastDetectedFace = faces[0].boundingBox;
+                        applySmartPosition(lastDetectedFace);
+                        showToast('Smart positioning applied', 'success');
+                    } else {
+                        lastDetectedFace = null;
+                        applySmartPosition(null);
+                    }
+                })
+                .catch(function() {
+                    lastDetectedFace = null;
+                    applySmartPosition(null);
+                });
+        } catch (e) {
+            lastDetectedFace = null;
+            applySmartPosition(null);
+        }
+    }
+
+    function onImageLoaded(image, name) {
+        AppState.setImage(image, name);
+        AppState.setAutoBackgroundColor(sampleImageColor(image));
+        showEditorView();
+        renderBeforePreview(image);
+        detectFace(image);
+        showToast('Image loaded', 'success');
+    }
+
     function onImageError(message) {
         showToast(message, 'error');
     }
 
-    /**
-     * Handle state changes - update UI
-     * @param {Object} state - Current state
-     */
-    function onStateChange(state) {
-        // Render main canvas
-        CanvasRenderer.render(elements.canvasCtx, CANVAS_SIZE, state);
-
-        // Render preview canvas
-        CanvasRenderer.renderPreview(elements.previewCtx, PREVIEW_SIZE, CANVAS_SIZE, state);
-
-        // Update zoom slider
-        Interactions.updateSliderValue(elements.zoomSlider, elements.zoomValue, state.scale);
-
-        // Update download button
-        var canDownload = state.image !== null && !state.isProcessingBackground;
-        Downloader.updateButtonState(elements.downloadBtn, canDownload);
-
-        // Update canvas cursor
-        elements.canvas.style.cursor = state.image ? 'grab' : 'default';
-
-        // Update remove background toggle state
-        if (elements.removeBgToggle) {
-            elements.removeBgToggle.disabled = state.isProcessingBackground;
-            elements.removeBgToggle.checked = state.removeBackground;
-        }
-
-        // Show/hide background color options
-        if (elements.bgColorOptions) {
-            elements.bgColorOptions.hidden = !state.removeBackground;
-        }
-
-        // Update hint text
-        if (elements.removeBgHint) {
-            if (state.isProcessingBackground) {
-                elements.removeBgHint.textContent = 'Processing... Please wait';
-                elements.removeBgHint.classList.add('processing');
-            } else if (state.removeBackground && state.processedImage) {
-                elements.removeBgHint.textContent = 'Background removed ✓';
-                elements.removeBgHint.classList.remove('processing');
-            } else {
-                elements.removeBgHint.textContent = 'AI-powered background removal';
-                elements.removeBgHint.classList.remove('processing');
-            }
-        }
-
-        // Show/hide border radius control based on crop style
-        if (elements.borderRadiusControl) {
-            elements.borderRadiusControl.hidden = state.cropStyle !== 'rounded';
-        }
-
-        // Update border radius slider
-        if (elements.borderRadiusSlider && elements.radiusValue) {
-            elements.borderRadiusSlider.value = state.borderRadius;
-            elements.radiusValue.textContent = state.borderRadius + '%';
-        }
-
-        // Update wrapper shapes based on crop style
-        updateWrapperShapes(state.cropStyle, state.borderRadius);
-    }
-
-    /**
-     * Update wrapper element shapes based on crop style
-     * @param {string} cropStyle - 'circle', 'square', or 'rounded'
-     * @param {number} borderRadius - Border radius percentage for rounded style
-     */
     function updateWrapperShapes(cropStyle, borderRadius) {
-        cropStyle = cropStyle || 'circle';
-        borderRadius = borderRadius || 20;
+        [elements.canvasWrapper, elements.previewWrapper].forEach(function(wrapper) {
+            if (!wrapper) return;
+            wrapper.dataset.shape = cropStyle;
+            wrapper.style.borderRadius = cropStyle === 'rounded' ? (borderRadius / 2) + '%' : '';
+        });
 
-        // Set data attribute on wrappers for CSS styling
-        if (elements.canvasWrapper) {
-            elements.canvasWrapper.dataset.shape = cropStyle;
-            if (cropStyle === 'rounded') {
-                elements.canvasWrapper.style.borderRadius = (borderRadius / 100 * 50) + '%';
-            } else {
-                elements.canvasWrapper.style.borderRadius = '';
-            }
-        }
-
-        if (elements.previewWrapper) {
-            elements.previewWrapper.dataset.shape = cropStyle;
-            if (cropStyle === 'rounded') {
-                elements.previewWrapper.style.borderRadius = (borderRadius / 100 * 50) + '%';
-            } else {
-                elements.previewWrapper.style.borderRadius = '';
-            }
-        }
-
-        // Also update the preview canvas
-        var previewCanvas = elements.previewCanvas;
-        if (previewCanvas) {
-            previewCanvas.dataset.shape = cropStyle;
-            if (cropStyle === 'rounded') {
-                previewCanvas.style.borderRadius = (borderRadius / 100 * 50) + '%';
-            } else {
-                previewCanvas.style.borderRadius = '';
-            }
+        if (elements.previewCanvas) {
+            elements.previewCanvas.dataset.shape = cropStyle;
+            elements.previewCanvas.style.borderRadius = cropStyle === 'rounded' ? (borderRadius / 2) + '%' : '';
         }
     }
 
-    /**
-     * Handle color swatch click
-     * @param {string} color - The selected color
-     */
+    function updateActiveControls(state) {
+        elements.presetButtons.forEach(function(button) {
+            button.classList.toggle('active', button.dataset.preset === state.preset);
+        });
+
+        elements.backgroundStyleButtons.forEach(function(button) {
+            button.classList.toggle('active', button.dataset.bgStyle === state.backgroundStyle);
+        });
+
+        elements.colorSwatches.forEach(function(swatch) {
+            swatch.classList.toggle('active', swatch.dataset.color === state.backgroundColor);
+        });
+
+        elements.cropStyleRadios.forEach(function(radio) {
+            radio.checked = radio.value === state.cropStyle;
+        });
+    }
+
+    function onStateChange(state) {
+        CanvasRenderer.render(elements.canvasCtx, CANVAS_SIZE, state);
+        CanvasRenderer.renderPreview(elements.previewCtx, PREVIEW_SIZE, CANVAS_SIZE, state);
+        renderBeforePreview(state.image);
+
+        Interactions.updateSliderValue(elements.zoomSlider, elements.zoomValue, state.scale);
+        Downloader.updateButtonState(elements.downloadBtn, state.image !== null && !state.isProcessingBackground);
+
+        elements.canvas.style.cursor = state.image ? 'grab' : 'default';
+        elements.removeBgToggle.disabled = state.isProcessingBackground;
+        elements.removeBgToggle.checked = state.removeBackground;
+        elements.bgColorOptions.hidden = true;
+
+        if (state.isProcessingBackground) {
+            elements.removeBgHint.textContent = 'Processing locally...';
+            elements.removeBgHint.classList.add('processing');
+        } else if (state.removeBackground && state.processedImage) {
+            elements.removeBgHint.textContent = 'Cutout ready';
+            elements.removeBgHint.classList.remove('processing');
+        } else {
+            elements.removeBgHint.textContent = 'Optional on-device background removal';
+            elements.removeBgHint.classList.remove('processing');
+        }
+
+        elements.borderRadiusControl.hidden = state.cropStyle !== 'rounded';
+        elements.borderRadiusSlider.value = state.borderRadius;
+        elements.radiusValue.textContent = state.borderRadius + '%';
+        elements.formatSelect.value = state.exportFormat;
+        elements.qualitySelect.value = state.exportQuality;
+        elements.hdExportToggle.checked = state.hdExport;
+
+        var size = Downloader.getPresetSize(state.preset, state.hdExport);
+        elements.presetSize.textContent = size + 'px';
+        elements.exportSummary.textContent = state.exportFormat.toUpperCase() + ' ' + state.exportQuality;
+        elements.previewInfo.textContent = getPreset(state.preset).label + ' export - ' + size + 'x' + size;
+
+        updateWrapperShapes(state.cropStyle, state.borderRadius);
+        updateActiveControls(state);
+    }
+
+    function handlePresetSelect(presetKey) {
+        var preset = getPreset(presetKey);
+        AppState.setPreset(presetKey);
+        AppState.setCropStyle(preset.shape);
+        if (preset.shape === 'rounded') {
+            AppState.setBorderRadius(18);
+        }
+        applySmartPosition(lastDetectedFace);
+        showToast(preset.label + ' preset applied', 'success');
+    }
+
     function handleColorSelect(color) {
         AppState.setBackgroundColor(color);
-        
-        // Update active state on swatches
-        elements.colorSwatches.forEach(function(swatch) {
-            swatch.classList.toggle('active', swatch.dataset.color === color);
-        });
     }
 
-    /**
-     * Handle custom color picker change
-     */
     function handleCustomColorChange() {
-        var color = elements.customColorPicker.value;
-        AppState.setBackgroundColor(color);
-        
-        // Remove active state from preset swatches
-        elements.colorSwatches.forEach(function(swatch) {
-            swatch.classList.remove('active');
-        });
+        AppState.setBackgroundColor(elements.customColorPicker.value);
     }
 
-    /**
-     * Handle remove background toggle
-     */
+    function handleBackgroundStyle(style) {
+        AppState.setBackgroundStyle(style);
+    }
+
     function handleRemoveBgToggle() {
         var enabled = elements.removeBgToggle.checked;
         AppState.setRemoveBackground(enabled);
 
         if (enabled && AppState.hasImage()) {
             var state = AppState.getState();
-            
-            // Check if we already have a processed image
-            if (state.processedImage) {
-                return;
-            }
+            if (state.processedImage) return;
 
-            // Start processing - library will be loaded on demand
             AppState.setProcessingBackground(true);
-            elements.removeBgHint.textContent = 'Loading AI model (first time may take a minute)...';
-            elements.removeBgHint.classList.add('processing');
-
             BackgroundRemover.removeBackground(state.image, function(progress) {
-                var percent = Math.round(progress * 100);
-                if (percent < 15) {
-                    elements.removeBgHint.textContent = 'Loading library...';
-                } else if (percent < 50) {
-                    elements.removeBgHint.textContent = 'Downloading AI model... ' + percent + '%';
-                } else {
-                    elements.removeBgHint.textContent = 'Removing background... ' + percent + '%';
-                }
+                elements.removeBgHint.textContent = 'Processing locally... ' + Math.round(progress * 100) + '%';
             })
             .then(function(processedImage) {
                 AppState.setProcessedImage(processedImage);
                 AppState.setProcessingBackground(false);
-                showToast('Background removed successfully!', 'success');
+                showToast('Transparent cutout ready', 'success');
             })
             .catch(function(err) {
                 console.error('Background removal failed:', err);
                 AppState.setProcessingBackground(false);
                 AppState.setRemoveBackground(false);
-                elements.removeBgToggle.checked = false;
-                var errorMsg = err && err.message ? err.message : 'Background removal failed. Please try again.';
-                showToast(errorMsg, 'error');
+                showToast('Background removal failed', 'error');
             });
         }
     }
 
-    /**
-     * Handle crop style radio button change
-     * @param {Event} e - Change event
-     */
-    function handleCropStyleChange(e) {
-        var style = e.target.value;
-        AppState.setCropStyle(style);
-    }
-
-    /**
-     * Handle border radius slider change
-     */
-    function handleBorderRadiusChange() {
-        var radius = parseInt(elements.borderRadiusSlider.value, 10);
-        AppState.setBorderRadius(radius);
-    }
-
-    /**
-     * Handle reset button click
-     */
     function handleReset() {
-        AppState.reset();
-        showToast('Position and zoom reset', 'success');
+        applySmartPosition(lastDetectedFace);
+        showToast('Smart position restored', 'success');
     }
 
-    /**
-     * Handle new image button click
-     */
     function handleNewImage() {
+        lastDetectedFace = null;
         AppState.clear();
         BackgroundRemover.clearCache();
         showUploadView();
-        
-        // Reset zoom slider to default
-        elements.zoomSlider.value = AppState.getDefaultScale();
-        elements.zoomValue.textContent = AppState.getDefaultScale() + '%';
-        
-        // Reset toggle
-        if (elements.removeBgToggle) {
-            elements.removeBgToggle.checked = false;
-        }
-
-        // Reset color swatches to default (transparent)
-        if (elements.colorSwatches) {
-            elements.colorSwatches.forEach(function(swatch) {
-                swatch.classList.toggle('active', swatch.dataset.color === 'transparent');
-            });
-        }
-
-        // Reset crop style to circle
-        if (elements.cropStyleRadios) {
-            elements.cropStyleRadios.forEach(function(radio) {
-                radio.checked = radio.value === 'circle';
-            });
-        }
-
-        // Reset border radius slider
-        if (elements.borderRadiusSlider) {
-            elements.borderRadiusSlider.value = 20;
-        }
-        if (elements.radiusValue) {
-            elements.radiusValue.textContent = '20%';
-        }
-        
-        // Render empty state
-        CanvasRenderer.render(elements.canvasCtx, CANVAS_SIZE, AppState.getState());
-        CanvasRenderer.renderPreview(elements.previewCtx, PREVIEW_SIZE, CANVAS_SIZE, AppState.getState());
     }
 
-    /**
-     * Initialize button event listeners
-     */
     function initButtons() {
-        // Guard against missing elements
-        if (elements.resetBtn) {
-            elements.resetBtn.addEventListener('click', handleReset);
-        }
-        if (elements.newImageBtn) {
-            elements.newImageBtn.addEventListener('click', handleNewImage);
-        }
-        
-        // Initialize remove background toggle
-        if (elements.removeBgToggle) {
-            elements.removeBgToggle.addEventListener('change', handleRemoveBgToggle);
-        }
+        elements.resetBtn.addEventListener('click', handleReset);
+        elements.newImageBtn.addEventListener('click', handleNewImage);
+        elements.removeBgToggle.addEventListener('change', handleRemoveBgToggle);
 
-        // Initialize color swatches
-        if (elements.colorSwatches) {
-            elements.colorSwatches.forEach(function(swatch) {
-                swatch.addEventListener('click', function() {
-                    handleColorSelect(swatch.dataset.color);
-                });
+        elements.presetButtons.forEach(function(button) {
+            button.addEventListener('click', function() {
+                handlePresetSelect(button.dataset.preset);
             });
-        }
+        });
 
-        // Initialize custom color picker
-        if (elements.customColorPicker) {
-            elements.customColorPicker.addEventListener('input', handleCustomColorChange);
-            elements.customColorPicker.addEventListener('change', handleCustomColorChange);
-        }
-
-        // Initialize crop style radio buttons
-        if (elements.cropStyleRadios) {
-            elements.cropStyleRadios.forEach(function(radio) {
-                radio.addEventListener('change', handleCropStyleChange);
+        elements.backgroundStyleButtons.forEach(function(button) {
+            button.addEventListener('click', function() {
+                handleBackgroundStyle(button.dataset.bgStyle);
             });
-        }
+        });
 
-        // Initialize border radius slider
-        if (elements.borderRadiusSlider) {
-            elements.borderRadiusSlider.addEventListener('input', handleBorderRadiusChange);
-            elements.borderRadiusSlider.addEventListener('change', handleBorderRadiusChange);
-        }
+        elements.colorSwatches.forEach(function(swatch) {
+            swatch.addEventListener('click', function() {
+                handleColorSelect(swatch.dataset.color);
+            });
+        });
+
+        elements.customColorPicker.addEventListener('input', handleCustomColorChange);
+        elements.customColorPicker.addEventListener('change', handleCustomColorChange);
+
+        elements.cropStyleRadios.forEach(function(radio) {
+            radio.addEventListener('change', function(event) {
+                AppState.setCropStyle(event.target.value);
+            });
+        });
+
+        elements.borderRadiusSlider.addEventListener('input', function() {
+            AppState.setBorderRadius(parseInt(elements.borderRadiusSlider.value, 10));
+        });
+
+        elements.formatSelect.addEventListener('change', function() {
+            AppState.setExportFormat(elements.formatSelect.value);
+        });
+
+        elements.qualitySelect.addEventListener('change', function() {
+            AppState.setExportQuality(elements.qualitySelect.value);
+        });
+
+        elements.hdExportToggle.addEventListener('change', function() {
+            AppState.setHdExport(elements.hdExportToggle.checked);
+        });
     }
 
-    /**
-     * Initialize the application
-     */
     function init() {
-        // Get DOM elements
         initElements();
 
-        // Initialize image loader with error handling
-        ImageLoader.init(
-            elements.dropzone,
-            elements.fileInput,
-            onImageLoaded,
-            onImageError
-        );
+        ImageLoader.init(elements.dropzone, elements.fileInput, onImageLoaded, onImageError);
+        ClipboardHandler.init(function(blob, name) {
+            ImageLoader.loadImageFromBlob(blob, name);
+        }, function(message) {
+            showToast(message, 'success');
+        }, function(message) {
+            showToast(message, 'error');
+        });
 
-        // Initialize clipboard handler
-        ClipboardHandler.init(
-            function(blob, name) {
-                ImageLoader.loadImageFromBlob(blob, name);
-            },
-            function(message) {
-                showToast(message, 'success');
-            },
-            function(message) {
-                showToast(message, 'error');
-            }
-        );
+        Interactions.init(elements.canvas, elements.zoomSlider, elements.zoomValue, {
+            getState: AppState.getState,
+            setPosition: AppState.setPosition,
+            setScale: AppState.setScale
+        });
 
-        // Initialize interactions
-        Interactions.init(
-            elements.canvas,
-            elements.zoomSlider,
-            elements.zoomValue,
-            {
-                getState: AppState.getState,
-                setPosition: AppState.setPosition,
-                setScale: AppState.setScale
-            }
-        );
+        Downloader.init(elements.downloadBtn, AppState.getState, CanvasRenderer.renderForExport, function(size) {
+            showToast('Exported ' + size + 'px avatar', 'success');
+        }, function(err) {
+            showToast(err || 'Download failed', 'error');
+        });
 
-        // Initialize downloader with callbacks
-        Downloader.init(
-            elements.downloadBtn,
-            AppState.getState,
-            CanvasRenderer.renderForExport,
-            function() {
-                showToast('Image downloaded!', 'success');
-            },
-            function(err) {
-                showToast(err || 'Download failed', 'error');
-            }
-        );
-
-        // Initialize buttons
         initButtons();
-
-        // Subscribe to state changes
         AppState.subscribe(onStateChange);
-
-        // Initial render
-        CanvasRenderer.render(elements.canvasCtx, CANVAS_SIZE, AppState.getState());
-        CanvasRenderer.renderPreview(elements.previewCtx, PREVIEW_SIZE, CANVAS_SIZE, AppState.getState());
-
-        // Ensure correct initial view
+        onStateChange(AppState.getState());
         showUploadView();
-
-        // Check if background removal library is available
-        if (BackgroundRemover.isSupported()) {
-            console.log('Circle-it initialized with background removal support');
-        } else {
-            console.warn('Circle-it initialized - background removal library not loaded');
-        }
     }
 
-    // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {

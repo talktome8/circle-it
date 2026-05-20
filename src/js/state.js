@@ -11,6 +11,7 @@ var AppState = (function() {
      */
     var DEFAULT_POSITION = { x: 0, y: 0 };
     var DEFAULT_SCALE = 100; // Percentage (100-300)
+    var DEFAULT_PRESET = 'linkedin';
 
     /**
      * Internal state object
@@ -28,7 +29,13 @@ var AppState = (function() {
         backgroundImage: null,  // Background image (AI generated or uploaded)
         isGeneratingBackground: false,  // Whether AI is generating background
         cropStyle: 'circle',  // 'circle', 'square', 'rounded'
-        borderRadius: 20  // Border radius percentage for rounded style (0-50)
+        borderRadius: 20,  // Border radius percentage for rounded style (0-50)
+        preset: DEFAULT_PRESET,
+        exportFormat: 'png',
+        exportQuality: 'high',
+        hdExport: false,
+        backgroundStyle: 'transparent',
+        autoBackgroundColor: '#eef2ff'
     };
 
     /**
@@ -68,7 +75,13 @@ var AppState = (function() {
             backgroundImage: state.backgroundImage,
             isGeneratingBackground: state.isGeneratingBackground,
             cropStyle: state.cropStyle,
-            borderRadius: state.borderRadius
+            borderRadius: state.borderRadius,
+            preset: state.preset,
+            exportFormat: state.exportFormat,
+            exportQuality: state.exportQuality,
+            hdExport: state.hdExport,
+            backgroundStyle: state.backgroundStyle,
+            autoBackgroundColor: state.autoBackgroundColor
         };
     }
 
@@ -155,6 +168,12 @@ var AppState = (function() {
         state.isGeneratingBackground = false;
         state.cropStyle = 'circle';
         state.borderRadius = 20;
+        state.preset = DEFAULT_PRESET;
+        state.exportFormat = 'png';
+        state.exportQuality = 'high';
+        state.hdExport = false;
+        state.backgroundStyle = 'transparent';
+        state.autoBackgroundColor = '#eef2ff';
         notifySubscribers();
     }
 
@@ -191,7 +210,33 @@ var AppState = (function() {
      */
     function setBackgroundColor(color) {
         state.backgroundColor = color;
+        state.backgroundStyle = color === 'transparent' ? 'transparent' : 'solid';
         state.backgroundImage = null;  // Clear background image when setting color
+        notifySubscribers();
+    }
+
+    /**
+     * Set the lightweight background style.
+     * @param {string} style - 'transparent', 'solid', 'gradient', 'blur', or 'auto'
+     */
+    function setBackgroundStyle(style) {
+        if (['transparent', 'solid', 'gradient', 'blur', 'auto'].indexOf(style) !== -1) {
+            state.backgroundStyle = style;
+            if (style === 'transparent') {
+                state.backgroundColor = 'transparent';
+            } else if (style === 'solid' && state.backgroundColor === 'transparent') {
+                state.backgroundColor = '#ffffff';
+            }
+            notifySubscribers();
+        }
+    }
+
+    /**
+     * Store an automatically sampled palette color.
+     * @param {string} color - Hex color
+     */
+    function setAutoBackgroundColor(color) {
+        state.autoBackgroundColor = color || '#eef2ff';
         notifySubscribers();
     }
 
@@ -223,6 +268,46 @@ var AppState = (function() {
             state.cropStyle = style;
             notifySubscribers();
         }
+    }
+
+    /**
+     * Set the active profile-picture preset.
+     * @param {string} preset - Preset key
+     */
+    function setPreset(preset) {
+        state.preset = preset || DEFAULT_PRESET;
+        notifySubscribers();
+    }
+
+    /**
+     * Set export format.
+     * @param {string} format - 'png' or 'jpg'
+     */
+    function setExportFormat(format) {
+        if (['png', 'jpg'].indexOf(format) !== -1) {
+            state.exportFormat = format;
+            notifySubscribers();
+        }
+    }
+
+    /**
+     * Set export quality.
+     * @param {string} quality - 'standard', 'high', or 'max'
+     */
+    function setExportQuality(quality) {
+        if (['standard', 'high', 'max'].indexOf(quality) !== -1) {
+            state.exportQuality = quality;
+            notifySubscribers();
+        }
+    }
+
+    /**
+     * Toggle HD export.
+     * @param {boolean} enabled
+     */
+    function setHdExport(enabled) {
+        state.hdExport = !!enabled;
+        notifySubscribers();
     }
 
     /**
@@ -275,7 +360,13 @@ var AppState = (function() {
         setBackgroundColor: setBackgroundColor,
         setBackgroundImage: setBackgroundImage,
         setGeneratingBackground: setGeneratingBackground,
+        setBackgroundStyle: setBackgroundStyle,
+        setAutoBackgroundColor: setAutoBackgroundColor,
         setCropStyle: setCropStyle,
-        setBorderRadius: setBorderRadius
+        setBorderRadius: setBorderRadius,
+        setPreset: setPreset,
+        setExportFormat: setExportFormat,
+        setExportQuality: setExportQuality,
+        setHdExport: setHdExport
     };
 })();

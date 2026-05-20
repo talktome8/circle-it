@@ -3,9 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Circle-it: Crop any image into a perfect circle with transparent background. Free, fast, and works entirely in your browser.">
+    <meta name="description" content="Circle-it is a fast profile picture maker for LinkedIn, Instagram, WhatsApp, Discord, TikTok, YouTube, gaming avatars, circle crops, and transparent PNG avatars.">
+    <meta name="keywords" content="profile picture maker, circle crop image, WhatsApp profile picture cropper, LinkedIn avatar creator, transparent avatar maker, avatar cropper, profile photo editor">
+    <meta property="og:title" content="Circle-it - Premium Profile Picture Maker">
+    <meta property="og:description" content="Create polished profile pictures and avatars instantly. Crop, position, add simple backgrounds, and export optimized PNG or JPG files.">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
     <meta name="theme-color" content="#6366f1">
-    <title>Circle-it — Crop Images to Perfect Circles</title>
+    <title>Circle-it - Profile Picture Maker and Circle Crop Tool</title>
     <link rel="icon" href="./favicon.ico" type="image/x-icon">
     <link rel="icon" href="./favicon.png" type="image/png">
     <link rel="stylesheet" href="src/css/main.css">
@@ -13,7 +18,6 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Header -->
         <header class="app-header">
             <div class="logo">
                 <svg class="logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -23,11 +27,11 @@
                 </svg>
                 <h1 class="app-title">circle-it</h1>
             </div>
-            <p class="app-subtitle">Crop any image into a perfect circle</p>
+            <p class="app-subtitle">Create polished profile pictures in seconds</p>
+            <p class="trust-badge">Images never leave your browser</p>
         </header>
 
         <main class="app-main">
-            <!-- Upload Section -->
             <section class="upload-section" id="uploadSection">
                 <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Upload an image by clicking, dragging a file, or pasting from clipboard">
                     <div class="dropzone-content">
@@ -37,104 +41,83 @@
                                 <path d="M8 32V36C8 38.2091 9.79086 40 12 40H36C38.2091 40 40 38.2091 40 36V32"/>
                             </svg>
                         </div>
-                        <p class="dropzone-text">Drop your image here</p>
-                        <p class="dropzone-hint">or click to browse</p>
-                        <p class="dropzone-formats">Supports JPEG, PNG, and WebP</p>
-                        <p class="dropzone-paste">
-                            <kbd>Ctrl</kbd>+<kbd>V</kbd> to paste from clipboard
-                        </p>
+                        <p class="dropzone-text">Drop a portrait or screenshot</p>
+                        <p class="dropzone-hint">Circle-it will center it automatically</p>
+                        <p class="dropzone-formats">JPEG, PNG, WebP - no upload required</p>
+                        <p class="dropzone-paste"><kbd>Ctrl</kbd>+<kbd>V</kbd> to paste from clipboard</p>
                     </div>
                     <input type="file" id="fileInput" class="file-input" accept="image/jpeg,image/png,image/webp" aria-label="Choose an image file">
                 </div>
             </section>
 
-            <!-- Editor Section -->
             <section class="editor-section" id="editorSection" hidden>
                 <div class="editor-layout">
-                    <!-- Canvas Area -->
                     <div class="canvas-area">
                         <div class="canvas-wrapper">
-                            <canvas id="canvas" width="400" height="400" aria-label="Image editor. Drag to reposition the image within the circle."></canvas>
+                            <canvas id="canvas" width="400" height="400" aria-label="Image editor. Drag to reposition the image within the crop."></canvas>
                             <div class="canvas-overlay" id="canvasOverlay">
                                 <span class="drag-hint">Drag to reposition</span>
                             </div>
                         </div>
-                        <p class="canvas-help">Drag the image to reposition • Scroll to zoom</p>
+                        <p class="canvas-help">Drag to fine tune - scroll or pinch to zoom</p>
                     </div>
 
-                    <!-- Controls Panel -->
                     <div class="controls-panel">
-                        <!-- Zoom Control -->
                         <div class="control-group">
-                            <label for="zoomSlider" class="control-label">
-                                <svg class="control-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
-                                    <path d="M21 21L16.5 16.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                    <path d="M11 8V14M8 11H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                </svg>
-                                <span>Zoom</span>
-                                <span id="zoomValue" class="control-value">100%</span>
+                            <label class="control-label">
+                                <span>Profile Mode</span>
+                                <span id="presetSize" class="control-value">1024px</span>
                             </label>
-                            <input 
-                                type="range" 
-                                id="zoomSlider" 
-                                class="zoom-slider" 
-                                min="100" 
-                                max="300" 
-                                step="1" 
-                                value="100"
-                                aria-valuemin="100"
-                                aria-valuemax="300"
-                                aria-valuenow="100"
-                                aria-label="Adjust zoom level"
-                            >
-                        </div>
-
-                        <!-- Remove Background Toggle -->
-                        <div class="control-group">
-                            <label class="toggle-label">
-                                <span class="toggle-text">
-                                    <svg class="control-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                        <path d="M12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21C16.9706 21 21 16.9706 21 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                        <path d="M21 3L12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                        <path d="M21 9V3H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                    Remove Background
-                                </span>
-                                <input type="checkbox" id="removeBgToggle" class="toggle-input" aria-label="Remove background from image">
-                                <span class="toggle-switch"></span>
-                            </label>
-                            <p class="toggle-hint" id="removeBgHint">AI-powered background removal</p>
-                            
-                            <!-- Background Color Options (shown when Remove Background is enabled) -->
-                            <div class="bg-color-options" id="bgColorOptions" hidden>
-                                <label class="color-option-label">Background</label>
-                                <div class="color-picker-row">
-                                    <button type="button" class="color-swatch transparent-swatch active" data-color="transparent" title="Transparent" aria-label="Transparent background">
-                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                        </svg>
-                                    </button>
-                                    <button type="button" class="color-swatch" data-color="#ffffff" title="White" aria-label="White background" style="background-color: #ffffff;"></button>
-                                    <button type="button" class="color-swatch" data-color="#000000" title="Black" aria-label="Black background" style="background-color: #000000;"></button>
-                                    <button type="button" class="color-swatch" data-color="#3b82f6" title="Blue" aria-label="Blue background" style="background-color: #3b82f6;"></button>
-                                    <button type="button" class="color-swatch" data-color="#22c55e" title="Green" aria-label="Green background" style="background-color: #22c55e;"></button>
-                                    <button type="button" class="color-swatch" data-color="#eab308" title="Yellow" aria-label="Yellow background" style="background-color: #eab308;"></button>
-                                    <input type="color" id="customColorPicker" class="custom-color-picker" value="#6366f1" title="Choose custom color" aria-label="Choose custom background color">
-                                </div>
-                                
+                            <div class="preset-grid" id="presetGrid">
+                                <button type="button" class="preset-option active" data-preset="linkedin">LinkedIn</button>
+                                <button type="button" class="preset-option" data-preset="instagram">Instagram</button>
+                                <button type="button" class="preset-option" data-preset="discord">Discord</button>
+                                <button type="button" class="preset-option" data-preset="whatsapp">WhatsApp</button>
+                                <button type="button" class="preset-option" data-preset="tiktok">TikTok</button>
+                                <button type="button" class="preset-option" data-preset="youtube">YouTube</button>
+                                <button type="button" class="preset-option" data-preset="gaming">Gaming</button>
                             </div>
                         </div>
 
-                        <!-- Crop Style Control -->
                         <div class="control-group">
-                            <label class="control-label">
-                                <svg class="control-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="2"/>
-                                    <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>
-                                </svg>
-                                <span>Crop Shape</span>
+                            <label for="zoomSlider" class="control-label">
+                                <span>Zoom</span>
+                                <span id="zoomValue" class="control-value">100%</span>
                             </label>
+                            <input type="range" id="zoomSlider" class="zoom-slider" min="100" max="300" step="1" value="100" aria-valuemin="100" aria-valuemax="300" aria-valuenow="100" aria-label="Adjust zoom level">
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label"><span>Background</span></label>
+                            <div class="segmented-control" id="backgroundStyleGroup">
+                                <button type="button" class="segment-option active" data-bg-style="transparent">Clear</button>
+                                <button type="button" class="segment-option" data-bg-style="solid">Solid</button>
+                                <button type="button" class="segment-option" data-bg-style="gradient">Gradient</button>
+                                <button type="button" class="segment-option" data-bg-style="blur">Blur</button>
+                                <button type="button" class="segment-option" data-bg-style="auto">Auto</button>
+                            </div>
+                            <div class="color-picker-row compact-colors">
+                                <button type="button" class="color-swatch transparent-swatch active" data-color="transparent" title="Transparent" aria-label="Transparent background"></button>
+                                <button type="button" class="color-swatch" data-color="#ffffff" title="White" aria-label="White background" style="background-color: #ffffff;"></button>
+                                <button type="button" class="color-swatch" data-color="#111827" title="Dark" aria-label="Dark background" style="background-color: #111827;"></button>
+                                <button type="button" class="color-swatch" data-color="#3b82f6" title="Blue" aria-label="Blue background" style="background-color: #3b82f6;"></button>
+                                <button type="button" class="color-swatch" data-color="#22c55e" title="Green" aria-label="Green background" style="background-color: #22c55e;"></button>
+                                <input type="color" id="customColorPicker" class="custom-color-picker" value="#6366f1" title="Choose custom color" aria-label="Choose custom background color">
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="toggle-label">
+                                <span class="toggle-text">Transparent Cutout</span>
+                                <input type="checkbox" id="removeBgToggle" class="toggle-input" aria-label="Remove background from image">
+                                <span class="toggle-switch"></span>
+                            </label>
+                            <p class="toggle-hint" id="removeBgHint">Optional on-device background removal</p>
+                            <div class="bg-color-options" id="bgColorOptions" hidden></div>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label"><span>Shape</span></label>
                             <div class="crop-style-options">
                                 <label class="crop-style-option">
                                     <input type="radio" name="cropStyle" value="circle" checked aria-label="Circle crop">
@@ -152,76 +135,69 @@
                                     <span class="crop-style-name">Rounded</span>
                                 </label>
                             </div>
-                            
-                            <!-- Border Radius Slider (shown when Rounded is selected) -->
+
                             <div class="border-radius-control" id="borderRadiusControl" hidden>
                                 <label for="borderRadiusSlider" class="radius-label">
                                     <span>Corner Radius</span>
                                     <span id="radiusValue" class="control-value">20%</span>
                                 </label>
-                                <input 
-                                    type="range" 
-                                    id="borderRadiusSlider" 
-                                    class="radius-slider" 
-                                    min="0" 
-                                    max="50" 
-                                    step="1" 
-                                    value="20"
-                                    aria-valuemin="0"
-                                    aria-valuemax="50"
-                                    aria-valuenow="20"
-                                    aria-label="Adjust corner radius"
-                                >
+                                <input type="range" id="borderRadiusSlider" class="radius-slider" min="0" max="50" step="1" value="20" aria-valuemin="0" aria-valuemax="50" aria-valuenow="20" aria-label="Adjust corner radius">
                             </div>
                         </div>
 
-                        <!-- Action Buttons -->
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span>Export</span>
+                                <span id="exportSummary" class="control-value">PNG High</span>
+                            </label>
+                            <div class="export-row">
+                                <select id="formatSelect" class="select-control" aria-label="Choose export format">
+                                    <option value="png">PNG</option>
+                                    <option value="jpg">JPG</option>
+                                </select>
+                                <select id="qualitySelect" class="select-control" aria-label="Choose export quality">
+                                    <option value="standard">Standard</option>
+                                    <option value="high" selected>High</option>
+                                    <option value="max">Max</option>
+                                </select>
+                                <label class="mini-toggle">
+                                    <input type="checkbox" id="hdExportToggle">
+                                    <span>HD</span>
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="button-group">
-                            <button type="button" id="homeBtn" class="btn btn-secondary" aria-label="Go back to home">
-                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <path d="M3 12L12 3L21 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <path d="M5 10V19C5 19.5523 5.44772 20 6 20H9V15C9 14.4477 9.44772 14 10 14H14C14.5523 14 15 14.4477 15 15V20H18C18.5523 20 19 19.5523 19 19V10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                Home
-                            </button>
-                            <button type="button" id="resetBtn" class="btn btn-secondary" aria-label="Reset position and zoom">
-                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <path d="M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C9.34784 21 6.9418 19.8714 5.25 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                    <path d="M3 7V12H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                Reset
-                            </button>
+                            <button type="button" id="homeBtn" class="btn btn-secondary" aria-label="Go back to home">Home</button>
+                            <button type="button" id="resetBtn" class="btn btn-secondary" aria-label="Reset position and zoom">Reset</button>
                         </div>
 
-                        <!-- Preview Section -->
                         <div class="preview-section">
-                            <h3 class="preview-title">Output Preview</h3>
-                            <div class="preview-wrapper">
-                                <canvas id="previewCanvas" width="120" height="120" aria-label="Final output preview"></canvas>
+                            <h3 class="preview-title">Before / After</h3>
+                            <div class="compare-preview">
+                                <div class="before-wrapper">
+                                    <canvas id="beforeCanvas" width="120" height="120" aria-label="Original image preview"></canvas>
+                                </div>
+                                <div class="preview-wrapper">
+                                    <canvas id="previewCanvas" width="120" height="120" aria-label="Final output preview"></canvas>
+                                </div>
                             </div>
-                            <p class="preview-info">PNG with transparent background</p>
+                            <p class="preview-info" id="previewInfo">Optimized avatar export</p>
                         </div>
 
-                        <!-- Download Button -->
-                        <button type="button" id="downloadBtn" class="btn btn-primary btn-download" aria-label="Download circular image as PNG">
-                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M12 4V16M12 16L7 11M12 16L17 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M4 20H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                            Download PNG
+                        <button type="button" id="downloadBtn" class="btn btn-primary btn-download" aria-label="Download avatar image">
+                            Download Avatar
                         </button>
                     </div>
                 </div>
             </section>
         </main>
 
-        <!-- Footer -->
         <footer class="app-footer">
-            <p>Made with care • Images stay in your browser</p>
+            <p>Made with care - Images stay in your browser</p>
         </footer>
     </div>
 
-    <!-- Toast Notification -->
     <div id="toast" class="toast" role="alert" aria-live="polite"></div>
 
     <script src="src/js/state.js"></script>

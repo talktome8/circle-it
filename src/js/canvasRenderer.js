@@ -120,6 +120,33 @@ var CanvasRenderer = (function() {
     }
 
     /**
+     * Calculate dimensions to fit an image inside a square while preserving aspect ratio.
+     * @param {HTMLImageElement} image - The image to calculate dimensions for
+     * @param {number} canvasSize - Canvas size
+     * @returns {Object} Object with width, height, x, y properties
+     */
+    function calculateContainDimensions(image, canvasSize) {
+        var imageAspect = image.width / image.height;
+        var drawWidth;
+        var drawHeight;
+
+        if (imageAspect > 1) {
+            drawWidth = canvasSize;
+            drawHeight = drawWidth / imageAspect;
+        } else {
+            drawHeight = canvasSize;
+            drawWidth = drawHeight * imageAspect;
+        }
+
+        return {
+            width: drawWidth,
+            height: drawHeight,
+            x: (canvasSize - drawWidth) / 2,
+            y: (canvasSize - drawHeight) / 2
+        };
+    }
+
+    /**
      * Clamp image position so the crop area is always fully covered.
      * @param {HTMLImageElement} image - The rendered image
      * @param {number} canvasSize - The source canvas size
@@ -156,8 +183,85 @@ var CanvasRenderer = (function() {
     }
 
     /**
+     * Build a subtle lighter tint from a hex color.
+     * @param {string} color - Hex color
+     * @returns {string} RGB color string
+     */
+    function getTint(color) {
+        var hex = (color || '#eef2ff').replace('#', '');
+        if (hex.length !== 6) {
+            return '#ffffff';
+        }
+
+        var r = parseInt(hex.substring(0, 2), 16);
+        var g = parseInt(hex.substring(2, 4), 16);
+        var b = parseInt(hex.substring(4, 6), 16);
+
+        r = Math.round(r + (255 - r) * 0.72);
+        g = Math.round(g + (255 - g) * 0.72);
+        b = Math.round(b + (255 - b) * 0.72);
+
+        return 'rgb(' + r + ', ' + g + ', ' + b + ')';
+    }
+
+    /**
+     * Draw the selected lightweight background treatment.
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} size - Canvas size
+     * @param {Object} state - Current application state
+     * @param {string} cropStyle - Active crop style
+     * @param {number} borderRadius - Rounded style radius
+     * @param {HTMLImageElement} sourceImage - Source image
+     * @param {boolean} forceOpaque - Whether export requires an opaque background
+     */
+    function drawBackground(ctx, size, state, cropStyle, borderRadius, sourceImage, forceOpaque) {
+        var style = state.backgroundStyle || 'transparent';
+        var color = state.backgroundColor || 'transparent';
+        var autoColor = state.autoBackgroundColor || '#eef2ff';
+
+        if (forceOpaque && style === 'transparent') {
+            style = 'solid';
+            color = '#ffffff';
+        }
+
+        if (style === 'transparent' && color === 'transparent' && !state.backgroundImage) {
+            return;
+        }
+
+        ctx.save();
+        createClipPath(ctx, size, cropStyle, borderRadius);
+
+        if (style === 'blur' && sourceImage) {
+            var blurDims = calculateImageDimensions(sourceImage, size, 115);
+            ctx.filter = 'blur(' + Math.max(10, Math.round(size * 0.04)) + 'px)';
+            ctx.drawImage(sourceImage, blurDims.x, blurDims.y, blurDims.width, blurDims.height);
+            ctx.filter = 'none';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+            ctx.fillRect(0, 0, size, size);
+        } else if (style === 'gradient') {
+            var gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, getTint(autoColor));
+            gradient.addColorStop(0.55, autoColor);
+            gradient.addColorStop(1, '#111827');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+        } else if (style === 'auto') {
+            ctx.fillStyle = autoColor;
+            ctx.fillRect(0, 0, size, size);
+        } else if (state.backgroundImage) {
+            var bgDims = calculateImageDimensions(state.backgroundImage, size, 100);
+            ctx.drawImage(state.backgroundImage, bgDims.x, bgDims.y, bgDims.width, bgDims.height);
+        } else if (color && color !== 'transparent') {
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, size, size);
+        }
+
+        ctx.restore();
+    }
+
+    /**
      * Render the canvas with current state
-     * Uses fully transparent canvas pixels — CSS checkerboard on the wrapper
+     * Uses fully transparent canvas pixels - CSS checkerboard on the wrapper
      * element shows through to indicate transparency.
      * @param {CanvasRenderingContext2D} ctx - Canvas context
      * @param {number} size - Canvas size
@@ -175,29 +279,13 @@ var CanvasRenderer = (function() {
         // NOTE: No checkerboard is drawn onto the canvas.
         // The CSS checkerboard on .canvas-wrapper shows through transparent pixels.
 
-        // Draw background image if set (and remove background is enabled)
-        if (state.removeBackground && state.backgroundImage) {
-            ctx.save();
-            createClipPath(ctx, size, cropStyle, borderRadius);
-            // Cover the canvas with background image
-            var bgDims = calculateImageDimensions(state.backgroundImage, size, 100);
-            ctx.drawImage(state.backgroundImage, bgDims.x, bgDims.y, bgDims.width, bgDims.height);
-            ctx.restore();
-        }
-        // Draw solid background color if set (and remove background is enabled)
-        else if (state.removeBackground && state.backgroundColor && state.backgroundColor !== 'transparent') {
-            ctx.save();
-            createClipPath(ctx, size, cropStyle, borderRadius);
-            ctx.fillStyle = state.backgroundColor;
-            ctx.fillRect(0, 0, size, size);
-            ctx.restore();
-        }
-
         // Determine which image to use
         var imageToRender = state.image;
         if (state.removeBackground && state.processedImage) {
             imageToRender = state.processedImage;
         }
+
+        drawBackground(ctx, size, state, cropStyle, borderRadius, state.image, false);
 
         // Draw image if loaded
         if (imageToRender) {
@@ -304,22 +392,7 @@ var CanvasRenderer = (function() {
             return;
         }
 
-        // Draw background image if set (for removed background images)
-        if (state.removeBackground && state.backgroundImage) {
-            ctx.save();
-            createClipPath(ctx, size, cropStyle, borderRadius);
-            var bgDims = calculateImageDimensions(state.backgroundImage, size, 100);
-            ctx.drawImage(state.backgroundImage, bgDims.x, bgDims.y, bgDims.width, bgDims.height);
-            ctx.restore();
-        }
-        // Draw background color if set (for removed background images)
-        else if (state.removeBackground && state.backgroundColor && state.backgroundColor !== 'transparent') {
-            ctx.save();
-            createClipPath(ctx, size, cropStyle, borderRadius);
-            ctx.fillStyle = state.backgroundColor;
-            ctx.fillRect(0, 0, size, size);
-            ctx.restore();
-        }
+        drawBackground(ctx, size, state, cropStyle, borderRadius, state.image, state.exportFormat === 'jpg');
 
         // Apply shape clip and draw image
         ctx.save();
@@ -344,7 +417,7 @@ var CanvasRenderer = (function() {
 
     /**
      * Render a preview version of the canvas
-     * Uses transparent pixels — CSS checkerboard on .preview-wrapper handles
+     * Uses transparent pixels - CSS checkerboard on .preview-wrapper handles
      * transparency visualisation.
      * @param {CanvasRenderingContext2D} ctx - Preview canvas context
      * @param {number} previewSize - Preview canvas size
@@ -383,17 +456,12 @@ var CanvasRenderer = (function() {
         ctx.save();
         createClipPath(ctx, previewSize, cropStyle, borderRadius);
 
-        // Draw background color if set
-        if (state.removeBackground && state.backgroundColor && state.backgroundColor !== 'transparent') {
-            ctx.fillStyle = state.backgroundColor;
-            ctx.fillRect(0, 0, previewSize, previewSize);
-        }
+        ctx.restore();
 
-        // Draw background image if set
-        if (state.removeBackground && state.backgroundImage) {
-            var bgDims = calculateImageDimensions(state.backgroundImage, previewSize, 100);
-            ctx.drawImage(state.backgroundImage, bgDims.x, bgDims.y, bgDims.width, bgDims.height);
-        }
+        drawBackground(ctx, previewSize, state, cropStyle, borderRadius, state.image, state.exportFormat === 'jpg');
+
+        ctx.save();
+        createClipPath(ctx, previewSize, cropStyle, borderRadius);
 
         // Draw image scaled to preview
         var dims = calculateImageDimensions(imageToRender, previewSize, state.scale);
@@ -420,7 +488,7 @@ var CanvasRenderer = (function() {
      */
     function verifyTransparency(ctx, size, cropStyle) {
         try {
-            // Sample corners — these should always be outside any shape
+            // Sample corners - these should always be outside any shape
             var samplePoints = [
                 { x: 0, y: 0 },
                 { x: size - 1, y: 0 },
@@ -447,7 +515,7 @@ var CanvasRenderer = (function() {
             }
 
             if (allTransparent) {
-                console.log('[circle-it] Transparency check PASSED — corners are fully transparent.');
+                console.log('[circle-it] Transparency check PASSED - corners are fully transparent.');
             }
             return allTransparent;
         } catch (e) {
@@ -463,6 +531,7 @@ var CanvasRenderer = (function() {
         renderForExport: renderForExport,
         renderPreview: renderPreview,
         calculateImageDimensions: calculateImageDimensions,
+        calculateContainDimensions: calculateContainDimensions,
         constrainPosition: constrainPosition,
         verifyTransparency: verifyTransparency
     };
