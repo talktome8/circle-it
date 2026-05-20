@@ -87,6 +87,22 @@
                             <input type="range" id="zoomSlider" class="zoom-slider" min="100" max="300" step="1" value="100" aria-valuemin="100" aria-valuemax="300" aria-valuenow="100" aria-label="Adjust zoom level">
                         </div>
 
+                        <div class="control-group studio-control">
+                            <label class="control-label">
+                                <span>Studio Light</span>
+                                <span id="lightStrengthValue" class="control-value">70%</span>
+                            </label>
+                            <div class="look-grid" id="lookGrid">
+                                <button type="button" class="look-option" data-look="natural">Natural</button>
+                                <button type="button" class="look-option active" data-look="studio">Studio</button>
+                                <button type="button" class="look-option" data-look="bright">Bright</button>
+                                <button type="button" class="look-option" data-look="warm">Warm</button>
+                                <button type="button" class="look-option" data-look="clean">Clean</button>
+                                <button type="button" class="look-option" data-look="dramatic">Dramatic</button>
+                            </div>
+                            <input type="range" id="lightStrengthSlider" class="zoom-slider light-slider" min="0" max="100" step="1" value="70" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70" aria-label="Adjust studio light strength">
+                        </div>
+
                         <div class="control-group">
                             <label class="control-label"><span>Background</span></label>
                             <div class="segmented-control" id="backgroundStyleGroup">

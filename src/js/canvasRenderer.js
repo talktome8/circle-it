@@ -260,6 +260,112 @@ var CanvasRenderer = (function() {
     }
 
     /**
+     * Interpolate between a neutral value and a target value by strength.
+     * @param {number} neutral - Neutral value
+     * @param {number} target - Target value
+     * @param {number} amount - Strength from 0 to 1
+     * @returns {number} Interpolated value
+     */
+    function mix(neutral, target, amount) {
+        return neutral + ((target - neutral) * amount);
+    }
+
+    /**
+     * Build a canvas filter string for the selected studio lighting look.
+     * @param {Object} state - Current application state
+     * @returns {string} Canvas filter string
+     */
+    function getImageFilter(state) {
+        var look = state.studioLook || 'studio';
+        var amount = Math.max(0, Math.min(1, (state.lightStrength || 0) / 100));
+        var settings = {
+            brightness: 1,
+            contrast: 1,
+            saturate: 1,
+            sepia: 0,
+            grayscale: 0
+        };
+
+        if (look === 'studio') {
+            settings.brightness = mix(1, 1.08, amount);
+            settings.contrast = mix(1, 1.09, amount);
+            settings.saturate = mix(1, 1.06, amount);
+        } else if (look === 'bright') {
+            settings.brightness = mix(1, 1.16, amount);
+            settings.contrast = mix(1, 1.04, amount);
+            settings.saturate = mix(1, 1.04, amount);
+        } else if (look === 'warm') {
+            settings.brightness = mix(1, 1.08, amount);
+            settings.contrast = mix(1, 1.06, amount);
+            settings.saturate = mix(1, 1.12, amount);
+            settings.sepia = mix(0, 0.12, amount);
+        } else if (look === 'clean') {
+            settings.brightness = mix(1, 1.1, amount);
+            settings.contrast = mix(1, 0.98, amount);
+            settings.saturate = mix(1, 0.96, amount);
+        } else if (look === 'dramatic') {
+            settings.brightness = mix(1, 0.96, amount);
+            settings.contrast = mix(1, 1.22, amount);
+            settings.saturate = mix(1, 1.08, amount);
+        } else if (look === 'natural') {
+            settings.brightness = mix(1, 1.02, amount);
+            settings.contrast = mix(1, 1.02, amount);
+            settings.saturate = mix(1, 1.01, amount);
+        }
+
+        return 'brightness(' + settings.brightness.toFixed(3) + ') ' +
+            'contrast(' + settings.contrast.toFixed(3) + ') ' +
+            'saturate(' + settings.saturate.toFixed(3) + ') ' +
+            'sepia(' + settings.sepia.toFixed(3) + ') ' +
+            'grayscale(' + settings.grayscale.toFixed(3) + ')';
+    }
+
+    /**
+     * Draw subtle light shaping over the image.
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} size - Canvas size
+     * @param {string} cropStyle - Crop style
+     * @param {number} borderRadius - Border radius
+     * @param {Object} state - Current app state
+     */
+    function drawStudioOverlay(ctx, size, cropStyle, borderRadius, state) {
+        var look = state.studioLook || 'studio';
+        var amount = Math.max(0, Math.min(1, (state.lightStrength || 0) / 100));
+
+        if (amount <= 0 || look === 'natural') {
+            return;
+        }
+
+        ctx.save();
+        createClipPath(ctx, size, cropStyle, borderRadius);
+
+        if (look === 'studio' || look === 'bright' || look === 'clean' || look === 'warm') {
+            var light = ctx.createRadialGradient(size * 0.38, size * 0.23, 0, size * 0.38, size * 0.23, size * 0.72);
+            light.addColorStop(0, look === 'warm' ? 'rgba(255, 237, 213, 0.46)' : 'rgba(255, 255, 255, 0.42)');
+            light.addColorStop(0.48, look === 'warm' ? 'rgba(255, 237, 213, 0.16)' : 'rgba(255, 255, 255, 0.12)');
+            light.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.globalAlpha = amount;
+            ctx.globalCompositeOperation = 'screen';
+            ctx.fillStyle = light;
+            ctx.fillRect(0, 0, size, size);
+        }
+
+        if (look === 'studio' || look === 'dramatic' || look === 'clean') {
+            var shade = ctx.createRadialGradient(size / 2, size * 0.42, size * 0.26, size / 2, size / 2, size * 0.68);
+            shade.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            shade.addColorStop(1, look === 'dramatic' ? 'rgba(15, 23, 42, 0.32)' : 'rgba(15, 23, 42, 0.14)');
+            ctx.globalAlpha = amount;
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.fillStyle = shade;
+            ctx.fillRect(0, 0, size, size);
+        }
+
+        ctx.restore();
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
+    /**
      * Render the canvas with current state
      * Uses fully transparent canvas pixels - CSS checkerboard on the wrapper
      * element shows through to indicate transparency.
@@ -295,6 +401,7 @@ var CanvasRenderer = (function() {
             var dims = calculateImageDimensions(imageToRender, size, state.scale);
             var position = constrainPosition(imageToRender, size, state.scale, state.position);
 
+            ctx.filter = getImageFilter(state);
             ctx.drawImage(
                 imageToRender,
                 dims.x + position.x,
@@ -302,8 +409,10 @@ var CanvasRenderer = (function() {
                 dims.width,
                 dims.height
             );
+            ctx.filter = 'none';
 
             ctx.restore();
+            drawStudioOverlay(ctx, size, cropStyle, borderRadius, state);
         }
 
         // Draw shape border
@@ -401,6 +510,7 @@ var CanvasRenderer = (function() {
         var dims = calculateImageDimensions(imageToRender, size, state.scale);
         var position = constrainPosition(imageToRender, size / scaleFactor, state.scale, state.position);
 
+        ctx.filter = getImageFilter(state);
         ctx.drawImage(
             imageToRender,
             dims.x + (position.x * scaleFactor),
@@ -408,8 +518,10 @@ var CanvasRenderer = (function() {
             dims.width,
             dims.height
         );
+        ctx.filter = 'none';
 
         ctx.restore();
+        drawStudioOverlay(ctx, size, cropStyle, borderRadius, state);
 
         // Reset compositing mode after drawing
         ctx.globalCompositeOperation = 'source-over';
@@ -467,6 +579,7 @@ var CanvasRenderer = (function() {
         var dims = calculateImageDimensions(imageToRender, previewSize, state.scale);
         var position = constrainPosition(imageToRender, canvasSize, state.scale, state.position);
 
+        ctx.filter = getImageFilter(state);
         ctx.drawImage(
             imageToRender,
             dims.x + (position.x * ratio),
@@ -474,8 +587,10 @@ var CanvasRenderer = (function() {
             dims.width,
             dims.height
         );
+        ctx.filter = 'none';
 
         ctx.restore();
+        drawStudioOverlay(ctx, previewSize, cropStyle, borderRadius, state);
     }
 
     /**
@@ -533,6 +648,7 @@ var CanvasRenderer = (function() {
         calculateImageDimensions: calculateImageDimensions,
         calculateContainDimensions: calculateContainDimensions,
         constrainPosition: constrainPosition,
+        getImageFilter: getImageFilter,
         verifyTransparency: verifyTransparency
     };
 })();

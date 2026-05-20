@@ -35,7 +35,9 @@ var AppState = (function() {
         exportQuality: 'high',
         hdExport: false,
         backgroundStyle: 'transparent',
-        autoBackgroundColor: '#eef2ff'
+        autoBackgroundColor: '#eef2ff',
+        studioLook: 'studio',
+        lightStrength: 70
     };
 
     /**
@@ -81,7 +83,9 @@ var AppState = (function() {
             exportQuality: state.exportQuality,
             hdExport: state.hdExport,
             backgroundStyle: state.backgroundStyle,
-            autoBackgroundColor: state.autoBackgroundColor
+            autoBackgroundColor: state.autoBackgroundColor,
+            studioLook: state.studioLook,
+            lightStrength: state.lightStrength
         };
     }
 
@@ -110,6 +114,8 @@ var AppState = (function() {
         state.backgroundColor = 'transparent';
         state.backgroundImage = null;
         state.isGeneratingBackground = false;
+        state.studioLook = 'studio';
+        state.lightStrength = 70;
         notifySubscribers();
     }
 
@@ -174,6 +180,8 @@ var AppState = (function() {
         state.hdExport = false;
         state.backgroundStyle = 'transparent';
         state.autoBackgroundColor = '#eef2ff';
+        state.studioLook = 'studio';
+        state.lightStrength = 70;
         notifySubscribers();
     }
 
@@ -311,6 +319,26 @@ var AppState = (function() {
     }
 
     /**
+     * Set studio lighting look.
+     * @param {string} look - Lighting look key
+     */
+    function setStudioLook(look) {
+        if (['natural', 'studio', 'bright', 'warm', 'clean', 'dramatic'].indexOf(look) !== -1) {
+            state.studioLook = look;
+            notifySubscribers();
+        }
+    }
+
+    /**
+     * Set studio lighting strength.
+     * @param {number} strength - Strength percentage (0-100)
+     */
+    function setLightStrength(strength) {
+        state.lightStrength = Math.max(0, Math.min(100, Math.round(strength)));
+        notifySubscribers();
+    }
+
+    /**
      * Set border radius for rounded style
      * @param {number} radius - Border radius percentage (0-50)
      */
@@ -367,6 +395,8 @@ var AppState = (function() {
         setPreset: setPreset,
         setExportFormat: setExportFormat,
         setExportQuality: setExportQuality,
-        setHdExport: setHdExport
+        setHdExport: setHdExport,
+        setStudioLook: setStudioLook,
+        setLightStrength: setLightStrength
     };
 })();

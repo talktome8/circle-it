@@ -10,6 +10,7 @@ A simple, fast, and privacy-focused profile-picture tool that processes images l
 
 - **Profile Presets** — LinkedIn, Instagram, Discord, WhatsApp, TikTok, YouTube, and gaming avatars
 - **Smart Positioning** — Uses browser face detection when available, with a fast fallback
+- **Studio Lighting** — One-tap natural, studio, bright, warm, clean, and dramatic looks
 - **Background Options** — Transparent, solid, gradient, blur, and auto palette background styles
 - **Export Options** — PNG, JPG, quality levels, and HD export
 - **Before / After Preview** — Compare the source image with the final avatar

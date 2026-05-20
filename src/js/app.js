@@ -54,6 +54,9 @@
         elements.presetButtons = document.querySelectorAll('.preset-option');
         elements.presetSize = document.getElementById('presetSize');
         elements.backgroundStyleButtons = document.querySelectorAll('.segment-option[data-bg-style]');
+        elements.lookButtons = document.querySelectorAll('.look-option');
+        elements.lightStrengthSlider = document.getElementById('lightStrengthSlider');
+        elements.lightStrengthValue = document.getElementById('lightStrengthValue');
         elements.formatSelect = document.getElementById('formatSelect');
         elements.qualitySelect = document.getElementById('qualitySelect');
         elements.hdExportToggle = document.getElementById('hdExportToggle');
@@ -230,6 +233,10 @@
         elements.cropStyleRadios.forEach(function(radio) {
             radio.checked = radio.value === state.cropStyle;
         });
+
+        elements.lookButtons.forEach(function(button) {
+            button.classList.toggle('active', button.dataset.look === state.studioLook);
+        });
     }
 
     function onStateChange(state) {
@@ -259,6 +266,9 @@
         elements.borderRadiusControl.hidden = state.cropStyle !== 'rounded';
         elements.borderRadiusSlider.value = state.borderRadius;
         elements.radiusValue.textContent = state.borderRadius + '%';
+        elements.lightStrengthSlider.value = state.lightStrength;
+        elements.lightStrengthSlider.setAttribute('aria-valuenow', state.lightStrength);
+        elements.lightStrengthValue.textContent = state.lightStrength + '%';
         elements.formatSelect.value = state.exportFormat;
         elements.qualitySelect.value = state.exportQuality;
         elements.hdExportToggle.checked = state.hdExport;
@@ -348,6 +358,17 @@
             button.addEventListener('click', function() {
                 handleBackgroundStyle(button.dataset.bgStyle);
             });
+        });
+
+        elements.lookButtons.forEach(function(button) {
+            button.addEventListener('click', function() {
+                AppState.setStudioLook(button.dataset.look);
+                showToast(button.textContent + ' light applied', 'success');
+            });
+        });
+
+        elements.lightStrengthSlider.addEventListener('input', function() {
+            AppState.setLightStrength(parseInt(elements.lightStrengthSlider.value, 10));
         });
 
         elements.colorSwatches.forEach(function(swatch) {
