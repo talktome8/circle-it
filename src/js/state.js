@@ -37,7 +37,7 @@ var AppState = (function() {
         backgroundStyle: 'transparent',
         autoBackgroundColor: '#eef2ff',
         studioLook: 'studio',
-        lightStrength: 70
+        lightStrength: 75
     };
 
     /**
@@ -115,7 +115,7 @@ var AppState = (function() {
         state.backgroundImage = null;
         state.isGeneratingBackground = false;
         state.studioLook = 'studio';
-        state.lightStrength = 70;
+        state.lightStrength = 75;
         notifySubscribers();
     }
 
@@ -181,7 +181,7 @@ var AppState = (function() {
         state.backgroundStyle = 'transparent';
         state.autoBackgroundColor = '#eef2ff';
         state.studioLook = 'studio';
-        state.lightStrength = 70;
+        state.lightStrength = 75;
         notifySubscribers();
     }
 

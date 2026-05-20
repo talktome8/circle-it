@@ -89,8 +89,8 @@
 
                         <div class="control-group studio-control">
                             <label class="control-label">
-                                <span>Studio Light</span>
-                                <span id="lightStrengthValue" class="control-value">70%</span>
+                                <span>Enhance</span>
+                                <span id="lightStrengthValue" class="control-value">75%</span>
                             </label>
                             <div class="look-grid" id="lookGrid">
                                 <button type="button" class="look-option" data-look="natural">Natural</button>
@@ -100,7 +100,7 @@
                                 <button type="button" class="look-option" data-look="clean">Clean</button>
                                 <button type="button" class="look-option" data-look="dramatic">Dramatic</button>
                             </div>
-                            <input type="range" id="lightStrengthSlider" class="zoom-slider light-slider" min="0" max="100" step="1" value="70" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70" aria-label="Adjust studio light strength">
+                            <input type="range" id="lightStrengthSlider" class="zoom-slider light-slider" min="0" max="100" step="1" value="75" aria-valuemin="0" aria-valuemax="100" aria-valuenow="75" aria-label="Adjust enhancement strength">
                         </div>
 
                         <div class="control-group">
@@ -191,11 +191,17 @@
                         <div class="preview-section">
                             <h3 class="preview-title">Before / After</h3>
                             <div class="compare-preview">
-                                <div class="before-wrapper">
-                                    <canvas id="beforeCanvas" width="120" height="120" aria-label="Original image preview"></canvas>
+                                <div class="comparison-item">
+                                    <span class="comparison-label">Before</span>
+                                    <div class="before-wrapper">
+                                    <canvas id="beforeCanvas" width="128" height="128" aria-label="Original image preview"></canvas>
+                                    </div>
                                 </div>
-                                <div class="preview-wrapper">
-                                    <canvas id="previewCanvas" width="120" height="120" aria-label="Final output preview"></canvas>
+                                <div class="comparison-item">
+                                    <span class="comparison-label">After</span>
+                                    <div class="preview-wrapper">
+                                        <canvas id="previewCanvas" width="128" height="128" aria-label="Final output preview"></canvas>
+                                    </div>
                                 </div>
                             </div>
                             <p class="preview-info" id="previewInfo">Optimized avatar export</p>

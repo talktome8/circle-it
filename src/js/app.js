@@ -7,7 +7,7 @@
     'use strict';
 
     var CANVAS_SIZE = 400;
-    var PREVIEW_SIZE = 120;
+    var PREVIEW_SIZE = 128;
 
     var PRESETS = {
         linkedin: { label: 'LinkedIn', size: 1024, shape: 'circle', scale: 116, faceRatio: 0.48, targetY: 0.47 },
@@ -91,17 +91,56 @@
         return PRESETS[key] || PRESETS.linkedin;
     }
 
-    function renderBeforePreview(image) {
+    function clipPreviewShape(ctx, size, cropStyle, borderRadius) {
+        cropStyle = cropStyle || 'circle';
+        borderRadius = borderRadius || 20;
+        ctx.beginPath();
+
+        if (cropStyle === 'circle') {
+            ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        } else if (cropStyle === 'square') {
+            ctx.rect(0, 0, size, size);
+        } else {
+            var radius = Math.min((borderRadius / 100) * (size / 2), size / 2);
+            ctx.moveTo(radius, 0);
+            ctx.lineTo(size - radius, 0);
+            ctx.quadraticCurveTo(size, 0, size, radius);
+            ctx.lineTo(size, size - radius);
+            ctx.quadraticCurveTo(size, size, size - radius, size);
+            ctx.lineTo(radius, size);
+            ctx.quadraticCurveTo(0, size, 0, size - radius);
+            ctx.lineTo(0, radius);
+            ctx.quadraticCurveTo(0, 0, radius, 0);
+        }
+
+        ctx.closePath();
+        ctx.clip();
+    }
+
+    function renderBeforePreview(state) {
         var ctx = elements.beforeCtx;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, PREVIEW_SIZE, PREVIEW_SIZE);
         ctx.fillStyle = '#f8fafc';
         ctx.fillRect(0, 0, PREVIEW_SIZE, PREVIEW_SIZE);
 
+        var image = state && state.image;
         if (!image) return;
 
-        var dims = CanvasRenderer.calculateContainDimensions(image, PREVIEW_SIZE);
-        ctx.drawImage(image, dims.x, dims.y, dims.width, dims.height);
+        var ratio = PREVIEW_SIZE / CANVAS_SIZE;
+        var dims = CanvasRenderer.calculateImageDimensions(image, PREVIEW_SIZE, state.scale);
+        var position = CanvasRenderer.constrainPosition(image, CANVAS_SIZE, state.scale, state.position);
+
+        ctx.save();
+        clipPreviewShape(ctx, PREVIEW_SIZE, state.cropStyle, state.borderRadius);
+        ctx.drawImage(
+            image,
+            dims.x + (position.x * ratio),
+            dims.y + (position.y * ratio),
+            dims.width,
+            dims.height
+        );
+        ctx.restore();
     }
 
     function sampleImageColor(image) {
@@ -195,7 +234,7 @@
         AppState.setImage(image, name);
         AppState.setAutoBackgroundColor(sampleImageColor(image));
         showEditorView();
-        renderBeforePreview(image);
+        renderBeforePreview(AppState.getState());
         detectFace(image);
         showToast('Image loaded', 'success');
     }
@@ -242,7 +281,7 @@
     function onStateChange(state) {
         CanvasRenderer.render(elements.canvasCtx, CANVAS_SIZE, state);
         CanvasRenderer.renderPreview(elements.previewCtx, PREVIEW_SIZE, CANVAS_SIZE, state);
-        renderBeforePreview(state.image);
+        renderBeforePreview(state);
 
         Interactions.updateSliderValue(elements.zoomSlider, elements.zoomValue, state.scale);
         Downloader.updateButtonState(elements.downloadBtn, state.image !== null && !state.isProcessingBackground);

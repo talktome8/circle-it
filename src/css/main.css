@@ -58,7 +58,7 @@
 
     /* Canvas Size */
     --canvas-size: 400px;
-    --preview-size: 120px;
+    --preview-size: 128px;
 }
 
 html {
@@ -396,6 +396,19 @@ body {
     justify-content: center;
     align-items: center;
     gap: var(--spacing-md);
+}
+
+.comparison-item {
+    display: grid;
+    gap: 0.35rem;
+    justify-items: center;
+}
+
+.comparison-label {
+    color: var(--color-text-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
 }
 
 .before-wrapper {

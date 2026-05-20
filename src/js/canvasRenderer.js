@@ -271,6 +271,185 @@ var CanvasRenderer = (function() {
     }
 
     /**
+     * Clamp a color channel to the 0-255 range.
+     * @param {number} value - Color channel value
+     * @returns {number} Clamped value
+     */
+    function clampChannel(value) {
+        return Math.max(0, Math.min(255, value));
+    }
+
+    /**
+     * Get pixel-level enhancement settings for the selected look.
+     * These settings only adjust tone, color, and micro-contrast; they never reshape faces.
+     * @param {Object} state - Current application state
+     * @returns {Object} Enhancement settings
+     */
+    function getEnhancementSettings(state) {
+        var look = state.studioLook || 'studio';
+        var amount = Math.max(0, Math.min(1, (state.lightStrength || 0) / 100));
+        var presets = {
+            natural: { exposure: 0.04, contrast: 0.06, vibrance: 0.05, shadows: 0.05, highlights: 0.03, warmth: 0, sharpen: 0.08 },
+            studio: { exposure: 0.16, contrast: 0.18, vibrance: 0.14, shadows: 0.2, highlights: 0.16, warmth: 0.02, sharpen: 0.22 },
+            bright: { exposure: 0.24, contrast: 0.1, vibrance: 0.11, shadows: 0.26, highlights: 0.2, warmth: 0, sharpen: 0.16 },
+            warm: { exposure: 0.15, contrast: 0.14, vibrance: 0.18, shadows: 0.18, highlights: 0.12, warmth: 0.11, sharpen: 0.18 },
+            clean: { exposure: 0.18, contrast: 0.07, vibrance: 0.06, shadows: 0.24, highlights: 0.2, warmth: -0.02, sharpen: 0.15 },
+            dramatic: { exposure: 0.04, contrast: 0.32, vibrance: 0.14, shadows: 0.06, highlights: 0.08, warmth: -0.01, sharpen: 0.26 }
+        };
+        var preset = presets[look] || presets.studio;
+
+        return {
+            amount: amount,
+            exposure: preset.exposure * amount,
+            contrast: preset.contrast * amount,
+            vibrance: preset.vibrance * amount,
+            shadows: preset.shadows * amount,
+            highlights: preset.highlights * amount,
+            warmth: preset.warmth * amount,
+            sharpen: preset.sharpen * amount
+        };
+    }
+
+    /**
+     * Apply tone lift, highlight protection, vibrance, and warmth to image pixels.
+     * @param {ImageData} imageData - Image data to mutate
+     * @param {Object} settings - Enhancement settings
+     */
+    function enhancePixels(imageData, settings) {
+        if (!settings || settings.amount <= 0) {
+            return;
+        }
+
+        var data = imageData.data;
+        var contrastFactor = 1 + settings.contrast;
+        var exposureLift = settings.exposure * 255;
+
+        for (var i = 0; i < data.length; i += 4) {
+            var alpha = data[i + 3];
+            if (alpha === 0) {
+                continue;
+            }
+
+            var r = data[i];
+            var g = data[i + 1];
+            var b = data[i + 2];
+            var luma = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 255;
+            var shadowMask = Math.pow(1 - luma, 1.7);
+            var highlightMask = Math.pow(luma, 2.2);
+            var shadowLift = settings.shadows * shadowMask * 54;
+            var highlightPull = settings.highlights * highlightMask * 42;
+
+            r = r + exposureLift + shadowLift - highlightPull;
+            g = g + exposureLift + shadowLift - highlightPull;
+            b = b + exposureLift + shadowLift - highlightPull;
+
+            r = (r - 128) * contrastFactor + 128;
+            g = (g - 128) * contrastFactor + 128;
+            b = (b - 128) * contrastFactor + 128;
+
+            r += settings.warmth * 32;
+            g += settings.warmth * 10;
+            b -= settings.warmth * 24;
+
+            var max = Math.max(r, g, b);
+            var avg = (r + g + b) / 3;
+            var vibranceAmount = settings.vibrance * (1 - Math.max(0, max - avg) / 128);
+            r = r + (r - avg) * vibranceAmount;
+            g = g + (g - avg) * vibranceAmount;
+            b = b + (b - avg) * vibranceAmount;
+
+            data[i] = clampChannel(r);
+            data[i + 1] = clampChannel(g);
+            data[i + 2] = clampChannel(b);
+        }
+    }
+
+    /**
+     * Apply a subtle sharpen pass to visible pixels.
+     * @param {ImageData} imageData - Source image data
+     * @param {number} width - Image width
+     * @param {number} height - Image height
+     * @param {number} amount - Sharpen amount
+     */
+    function sharpenPixels(imageData, width, height, amount) {
+        if (amount <= 0) {
+            return;
+        }
+
+        var source = new Uint8ClampedArray(imageData.data);
+        var data = imageData.data;
+        var center = 1 + amount * 2.9;
+        var side = -amount * 0.58;
+
+        for (var y = 1; y < height - 1; y++) {
+            for (var x = 1; x < width - 1; x++) {
+                var idx = (y * width + x) * 4;
+                if (source[idx + 3] === 0) {
+                    continue;
+                }
+
+                for (var channel = 0; channel < 3; channel++) {
+                    var value =
+                        source[idx + channel] * center +
+                        source[idx - 4 + channel] * side +
+                        source[idx + 4 + channel] * side +
+                        source[idx - width * 4 + channel] * side +
+                        source[idx + width * 4 + channel] * side;
+                    data[idx + channel] = clampChannel(value);
+                }
+            }
+        }
+    }
+
+    /**
+     * Render the positioned image into an intermediate canvas and enhance it.
+     * @param {HTMLImageElement} image - Source image
+     * @param {number} size - Canvas size
+     * @param {Object} dims - Draw dimensions
+     * @param {Object} position - Draw position
+     * @param {Object} state - Current application state
+     * @returns {HTMLCanvasElement} Enhanced image canvas
+     */
+    function renderEnhancedImageToCanvas(image, size, dims, position, state) {
+        var tempCanvas = document.createElement('canvas');
+        tempCanvas.width = size;
+        tempCanvas.height = size;
+        var tempCtx = tempCanvas.getContext('2d', { alpha: true });
+        tempCtx.imageSmoothingEnabled = true;
+        tempCtx.imageSmoothingQuality = 'high';
+        tempCtx.drawImage(
+            image,
+            dims.x + position.x,
+            dims.y + position.y,
+            dims.width,
+            dims.height
+        );
+
+        var settings = getEnhancementSettings(state);
+        if (settings.amount > 0) {
+            try {
+                var imageData = tempCtx.getImageData(0, 0, size, size);
+                enhancePixels(imageData, settings);
+                sharpenPixels(imageData, size, size, settings.sharpen);
+                tempCtx.putImageData(imageData, 0, 0);
+            } catch (e) {
+                tempCtx.filter = getImageFilter(state);
+                tempCtx.clearRect(0, 0, size, size);
+                tempCtx.drawImage(
+                    image,
+                    dims.x + position.x,
+                    dims.y + position.y,
+                    dims.width,
+                    dims.height
+                );
+                tempCtx.filter = 'none';
+            }
+        }
+
+        return tempCanvas;
+    }
+
+    /**
      * Build a canvas filter string for the selected studio lighting look.
      * @param {Object} state - Current application state
      * @returns {string} Canvas filter string
@@ -287,30 +466,30 @@ var CanvasRenderer = (function() {
         };
 
         if (look === 'studio') {
-            settings.brightness = mix(1, 1.08, amount);
-            settings.contrast = mix(1, 1.09, amount);
-            settings.saturate = mix(1, 1.06, amount);
-        } else if (look === 'bright') {
             settings.brightness = mix(1, 1.16, amount);
-            settings.contrast = mix(1, 1.04, amount);
-            settings.saturate = mix(1, 1.04, amount);
-        } else if (look === 'warm') {
-            settings.brightness = mix(1, 1.08, amount);
-            settings.contrast = mix(1, 1.06, amount);
+            settings.contrast = mix(1, 1.16, amount);
             settings.saturate = mix(1, 1.12, amount);
-            settings.sepia = mix(0, 0.12, amount);
-        } else if (look === 'clean') {
-            settings.brightness = mix(1, 1.1, amount);
-            settings.contrast = mix(1, 0.98, amount);
-            settings.saturate = mix(1, 0.96, amount);
-        } else if (look === 'dramatic') {
-            settings.brightness = mix(1, 0.96, amount);
-            settings.contrast = mix(1, 1.22, amount);
+        } else if (look === 'bright') {
+            settings.brightness = mix(1, 1.24, amount);
+            settings.contrast = mix(1, 1.08, amount);
             settings.saturate = mix(1, 1.08, amount);
+        } else if (look === 'warm') {
+            settings.brightness = mix(1, 1.14, amount);
+            settings.contrast = mix(1, 1.12, amount);
+            settings.saturate = mix(1, 1.18, amount);
+            settings.sepia = mix(0, 0.1, amount);
+        } else if (look === 'clean') {
+            settings.brightness = mix(1, 1.18, amount);
+            settings.contrast = mix(1, 1.04, amount);
+            settings.saturate = mix(1, 0.98, amount);
+        } else if (look === 'dramatic') {
+            settings.brightness = mix(1, 1.03, amount);
+            settings.contrast = mix(1, 1.3, amount);
+            settings.saturate = mix(1, 1.14, amount);
         } else if (look === 'natural') {
-            settings.brightness = mix(1, 1.02, amount);
-            settings.contrast = mix(1, 1.02, amount);
-            settings.saturate = mix(1, 1.01, amount);
+            settings.brightness = mix(1, 1.05, amount);
+            settings.contrast = mix(1, 1.05, amount);
+            settings.saturate = mix(1, 1.04, amount);
         }
 
         return 'brightness(' + settings.brightness.toFixed(3) + ') ' +
@@ -401,15 +580,12 @@ var CanvasRenderer = (function() {
             var dims = calculateImageDimensions(imageToRender, size, state.scale);
             var position = constrainPosition(imageToRender, size, state.scale, state.position);
 
-            ctx.filter = getImageFilter(state);
+            var enhancedImage = renderEnhancedImageToCanvas(imageToRender, size, dims, position, state);
             ctx.drawImage(
-                imageToRender,
-                dims.x + position.x,
-                dims.y + position.y,
-                dims.width,
-                dims.height
+                enhancedImage,
+                0,
+                0
             );
-            ctx.filter = 'none';
 
             ctx.restore();
             drawStudioOverlay(ctx, size, cropStyle, borderRadius, state);
@@ -510,15 +686,18 @@ var CanvasRenderer = (function() {
         var dims = calculateImageDimensions(imageToRender, size, state.scale);
         var position = constrainPosition(imageToRender, size / scaleFactor, state.scale, state.position);
 
-        ctx.filter = getImageFilter(state);
-        ctx.drawImage(
+        var enhancedImage = renderEnhancedImageToCanvas(
             imageToRender,
-            dims.x + (position.x * scaleFactor),
-            dims.y + (position.y * scaleFactor),
-            dims.width,
-            dims.height
+            size,
+            dims,
+            { x: position.x * scaleFactor, y: position.y * scaleFactor },
+            state
         );
-        ctx.filter = 'none';
+        ctx.drawImage(
+            enhancedImage,
+            0,
+            0
+        );
 
         ctx.restore();
         drawStudioOverlay(ctx, size, cropStyle, borderRadius, state);
@@ -579,15 +758,18 @@ var CanvasRenderer = (function() {
         var dims = calculateImageDimensions(imageToRender, previewSize, state.scale);
         var position = constrainPosition(imageToRender, canvasSize, state.scale, state.position);
 
-        ctx.filter = getImageFilter(state);
-        ctx.drawImage(
+        var enhancedImage = renderEnhancedImageToCanvas(
             imageToRender,
-            dims.x + (position.x * ratio),
-            dims.y + (position.y * ratio),
-            dims.width,
-            dims.height
+            previewSize,
+            dims,
+            { x: position.x * ratio, y: position.y * ratio },
+            state
         );
-        ctx.filter = 'none';
+        ctx.drawImage(
+            enhancedImage,
+            0,
+            0
+        );
 
         ctx.restore();
         drawStudioOverlay(ctx, previewSize, cropStyle, borderRadius, state);
@@ -649,6 +831,7 @@ var CanvasRenderer = (function() {
         calculateContainDimensions: calculateContainDimensions,
         constrainPosition: constrainPosition,
         getImageFilter: getImageFilter,
+        renderEnhancedImageToCanvas: renderEnhancedImageToCanvas,
         verifyTransparency: verifyTransparency
     };
 })();
