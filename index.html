@@ -3,18 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Circle-it is a fast profile picture maker for LinkedIn, Instagram, WhatsApp, Discord, TikTok, YouTube, gaming avatars, circle crops, and transparent PNG avatars.">
-    <meta name="keywords" content="profile picture maker, circle crop image, WhatsApp profile picture cropper, LinkedIn avatar creator, transparent avatar maker, avatar cropper, profile photo editor">
+    <meta name="description" content="Create polished profile pictures in your browser. Crop, enhance, add simple backgrounds, and export PNG or JPG avatars for LinkedIn, WhatsApp, Instagram, Discord, TikTok, YouTube, and gaming.">
+    <meta name="keywords" content="profile picture maker, avatar maker, circle crop image, WhatsApp profile picture cropper, LinkedIn avatar creator, transparent avatar maker">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://circle-it.raztom.com/">
     <meta property="og:title" content="Circle-it - Premium Profile Picture Maker">
-    <meta property="og:description" content="Create polished profile pictures and avatars instantly. Crop, position, add simple backgrounds, and export optimized PNG or JPG files.">
+    <meta property="og:description" content="Create polished profile pictures in your browser. Crop, enhance, add simple backgrounds, and export PNG or JPG avatars for popular profile platforms.">
     <meta property="og:type" content="website">
+    <meta property="og:url" content="https://circle-it.raztom.com/">
+    <meta property="og:site_name" content="Circle-it">
     <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Circle-it - Profile Picture Maker">
+    <meta name="twitter:description" content="Crop, enhance, and export profile pictures locally in your browser.">
     <meta name="theme-color" content="#6366f1">
-    <title>Circle-it - Profile Picture Maker and Circle Crop Tool</title>
+    <title>Circle-it - Profile Picture Maker and Avatar Crop Tool</title>
     <link rel="icon" href="./favicon.ico" type="image/x-icon">
     <link rel="icon" href="./favicon.png" type="image/png">
     <link rel="stylesheet" href="src/css/main.css">
     <link rel="stylesheet" href="src/css/controls.css">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            "name": "Circle-it",
+            "url": "https://circle-it.raztom.com/",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Any",
+            "description": "A browser-based profile picture maker for cropping, enhancing, and exporting avatars.",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="app-container">
@@ -222,6 +244,9 @@
 
     <div id="toast" class="toast" role="alert" aria-live="polite"></div>
 
+    <!-- Cloudflare Web Analytics -->
+    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "ff8141d2db6d45b59525ed4d9749f7cf"}'></script>
+    <!-- End Cloudflare Web Analytics -->
     <script src="src/js/state.js"></script>
     <script src="src/js/canvasRenderer.js"></script>
     <script src="src/js/imageLoader.js"></script>
