@@ -2,9 +2,9 @@
 
 **Create polished profile pictures and avatars in seconds.**
 
-A simple, fast, and privacy-focused profile-picture tool that processes images locally in your browser. No uploads and no data collection.
+A simple, fast, privacy-focused profile-picture tool that processes images locally in your browser. Images are not uploaded to Circle-it.
 
-🌐 **Live Demo:** [circle-it.raztom.com](https://circle-it.raztom.com)
+🌐 **Live Demo:** [Open Circle-it](https://circle-it.raztom.com/)
 
 ## ✨ Features
 
@@ -28,7 +28,7 @@ Visit [circle-it.raztom.com](https://circle-it.raztom.com) to start using the to
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/raztom/circle-it.git
+   git clone https://github.com/talktome8/circle-it.git
    cd circle-it
    ```
 
@@ -48,7 +48,7 @@ Visit [circle-it.raztom.com](https://circle-it.raztom.com) to start using the to
 
 3. **Visit:** `http://localhost:8000`
 
-No build tools, no dependencies, no installation required!
+No installation or build step is required for the core features.
 
 ## 📖 How to Use
 
